@@ -1,0 +1,9 @@
+
+
+.vscode
+*.o
+*.a
+*.ll
+*.s
+*.out
+*.sa
