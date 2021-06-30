@@ -3,12 +3,13 @@
 
 typedef float v2float __attribute__((vector_size (8)));
 
+/*
 __attribute_noinline__ 
 v2float f(v2float a, v2float b) {
   return a * b;
 }
 
-/* int main() {
+int main() {
 
   v2float a = {5, 10};
   v2float b = {2, 2};
@@ -19,12 +20,12 @@ v2float f(v2float a, v2float b) {
   }
 
 
-  return a[0];
-}
- */
-int main() {
-  float a = 100;
-  float b = 1000;
+  return 4;
+} */
+
+/* int main() {
+  float a = 100.0f;
+  float b = 1000.0f;
   float* sum = (float*) malloc(sizeof(float) * 50);
   for (int i = 0, e = 1000000000; i < e; i++)
   {
@@ -34,6 +35,17 @@ int main() {
   float res = sum[0];
   free(sum);
   return res;
+} */
+__attribute_noinline__
+int main() {
+  v2float a = {100.0f, 0.0f};
+  v2float b = {1000.0f, 0.0f};
+  v2float array[500000];
+  for (int i = 0; i < 500000; i++)
+  { 
+    array[i % 50] = a * b * (v2float) {static_cast<float>(i), static_cast<float>(i)};
+  }
+  return array[0][0];
 }
 
 /* int main() {
