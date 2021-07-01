@@ -36,7 +36,7 @@ int main() {
   free(sum);
   return res;
 } */
-__attribute_noinline__
+
 int main() {
   v2float a = {100.0f, 0.0f};
   v2float b = {1000.0f, 0.0f};

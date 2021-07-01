@@ -5,7 +5,7 @@ CC = ../build/bin/clang
 CXX = ../build/bin/clang++
 RUNTIME = runtime/interface.o  #-Lruntime -lruntime 
 CFLAGS = -g
-CXXFLAGS = -O3 -g
+CXXFLAGS = -O3
 TEST_PATH = ../llvm-project/compiler-rt/test/nsan
 TEST = $(TEST_PATH)/cadna_ex7.cc
 RT = libruntime.a
@@ -34,6 +34,9 @@ test_native : runtime
 test_ir :
 	$(CXX) $(CXXFLAGS) -S -emit-llvm -fsanitize=numerical -mllvm --nsan-interflop -mllvm --nsan-shadow-type-mapping=ijj -fno-omit-frame-pointer  test.cpp
 
+test_link : runtime
+	$(CXX) $(CXXFLAGS) -S -emit-llvm -fsanitize=numerical -mllvm --nsan-interflop -mllvm --nsan-interflop-rt=runtime/interface.ll -mllvm --nsan-shadow-type-mapping=ijj -fno-omit-frame-pointer  test.cpp
+
 llvm_link : runtime
 	$(CXX) $(CXXFLAGS) -S -emit-llvm -fsanitize=numerical -mllvm --nsan-interflop -mllvm --nsan-shadow-type-mapping=ijj -fno-omit-frame-pointer -o test.ll $(TEST)
 	../build/bin/llvm-link test.ll runtime/interface.ll | ../build/bin/llvm-dis -o linked.ll
@@ -49,7 +52,7 @@ EXAMPLE = cadna_ex1.cc cadna_ex2.cc cadna_ex3.cc cadna_ex4.cc cadna_ex5.cc cadna
 
 runtime :
 	$(MAKE) -C runtime $(RT)
-	#$(MAKE) -C runtime interface.ll
+	$(MAKE) -C runtime interface.ll
 
 
 .PHONY: example

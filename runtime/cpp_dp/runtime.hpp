@@ -163,8 +163,6 @@ public:
     if constexpr (kSize > 1) {
       bool res = 0;
       for (int i = 0; i < kSize; i++) {
-        if (not sa[i])
-          continue;
         res = res || RuntimeUtils<ScalarVT>::check(a[i], &sa[i]);
       }
       return res;

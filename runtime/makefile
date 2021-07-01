@@ -1,8 +1,8 @@
 
 CC = ../../build/bin/clang
 CXX = ../../build/bin/clang++
-CFLAGS = -g
-CXXFLAGS = -g -std=c++17 -mavx
+CFLAGS = 
+CXXFLAGS = -O3 -std=c++17 -mavx
 
 
 libruntime.a : cpp_dp/runtime.cpp cpp_dp/interface.cpp cpp_dp/runtime.hpp cpp_dp/shadow.hpp
