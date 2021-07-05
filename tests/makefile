@@ -5,7 +5,7 @@ CC = ../build/bin/clang
 CXX = ../build/bin/clang++
 RUNTIME = runtime/interface.o  #-Lruntime -lruntime 
 CFLAGS = -g
-CXXFLAGS = -O3
+CXXFLAGS = -O3 -std=c++17 -mavx
 TEST_PATH = ../llvm-project/compiler-rt/test/nsan
 TEST = $(TEST_PATH)/cadna_ex7.cc
 RT = libruntime.a
@@ -26,7 +26,7 @@ interflop_example : runtime
 	$(CXX) $(CXXFLAGS) -fsanitize=numerical -fno-omit-frame-pointer -mllvm --nsan-interflop -mllvm --nsan-shadow-type-mapping=ijj $(TEST) $(RUNTIME)
 
 test : runtime 
-	$(CXX) $(CXXFLAGS) -fsanitize=numerical -mllvm --nsan-interflop -mllvm --nsan-shadow-type-mapping=ijj -fno-omit-frame-pointer test.cpp $(RUNTIME)
+	$(CXX) $(CXXFLAGS) -fsanitize=numerical -mllvm --nsan-interflop -mllvm --nsan-shadow-type-mapping=ijj -fno-omit-frame-pointer test.cpp runtime/cpp_dp/interface.cpp $(RUNTIME)
 
 test_native : runtime 
 	$(CXX) $(CXXFLAGS) -fsanitize=numerical -fno-omit-frame-pointer test.cpp $(RUNTIME)
@@ -38,7 +38,7 @@ test_link : runtime
 	$(CXX) $(CXXFLAGS) -S -emit-llvm -fsanitize=numerical -mllvm --nsan-interflop -mllvm --nsan-interflop-rt=runtime/interface.ll -mllvm --nsan-shadow-type-mapping=ijj -fno-omit-frame-pointer  test.cpp
 
 llvm_link : runtime
-	$(CXX) $(CXXFLAGS) -S -emit-llvm -fsanitize=numerical -mllvm --nsan-interflop -mllvm --nsan-shadow-type-mapping=ijj -fno-omit-frame-pointer -o test.ll $(TEST)
+	$(CXX) $(CXXFLAGS) -S -emit-llvm -fsanitize=numerical -mllvm --nsan-interflop -mllvm --nsan-shadow-type-mapping=ijj -O3 -fno-omit-frame-pointer -o test.ll $(TEST)
 	../build/bin/llvm-link test.ll runtime/interface.ll | ../build/bin/llvm-dis -o linked.ll
 
 llvm_build : 
