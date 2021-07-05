@@ -1,25 +1,40 @@
-#pragma once
-#include <cmath>
-#include <iomanip>
 #include <iostream>
 #include <limits>
 
+#ifndef DOUBLEPREC_DEFINITION
+
+namespace doubleprec {
+
+template <typename> class DoublePrecRuntime;
+template <> class DoublePrecRuntime<void> {
+public:
+  struct shadow128_t {
+    double val;
+    uint64_t padding[1];
+  };
+
+  struct shadow256_t {
+    __float128 val;
+    uint64_t padding[2];
+  };
+};
+
+} // namespace doubleprec
+
+#else
+
+#pragma once
+#include <cmath>
+#include <iomanip>
+
 #include "Flags.hpp"
+
+#ifdef DOUBLEPREC_DEFINITION
 #include "Shadow.hpp"
+#endif
 #include "Utils.hpp"
 
-enum FCmpOpcode {
-  kOrderedFCmp,
-  kFCmp_oeq,
-  kFCmp_one,
-  kFCmp_ogt,
-  kFCmp_olt,
-  kUnorderedFCmp,
-  kFCmp_ueq,
-  kFCmp_une,
-  kFCmp_ugt,
-  kFCmp_ult
-};
+namespace doubleprec {
 
 // Helper class to represent a predicate between two shadow value
 // We need to handle the case where the compiler generated an unordered
@@ -49,6 +64,7 @@ public:
     utils::unreachable("Unknown Predicate");
   }
 };
+
 
 // Helper class to represent a comparison between two shadow value
 // Handle the case where the shadows are vector and multiple scalar needs to be
@@ -208,3 +224,5 @@ private:
       exit(1);
   }
 };
+} // namespace doubleprec
+#endif

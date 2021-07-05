@@ -2,19 +2,7 @@
 
 #include <iostream>
 #include "Utils.hpp"
-
-
-// FIXME : We have to handle different types of shadow
-// Use #ifdef / cast between an opaque type and the true shadow type ? 
-struct shadow128_t{
-    double val;
-    uint64_t padding[1];
-};
-
-struct shadow256_t {
-    __float128 val;
-    uint64_t padding[2];
-};
+#include "Runtime.hpp"
 
 typedef shadow128_t* v2shadow128_t[2];
 typedef shadow128_t* v4shadow128_t[4];

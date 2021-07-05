@@ -1,4 +1,3 @@
-#include "Shadow.hpp"
 #include "runtimes/Runtime.hpp"
 
 // ===================
