@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <random>
 #include <limits>
 
 namespace std {
@@ -18,20 +19,31 @@ typedef double v2double __attribute__((vector_size(16)));
 typedef double v4double __attribute__((vector_size(32)));
 typedef double v8double __attribute__((vector_size(64)));
 
+// Defined in the nsan runtime
 void __nsan_dump_stacktrace();
 
 namespace utils {
 
+
+
 void DumpStacktrace() {
-  std::cout << "\n\nInterflop stacktrace : \n";
+  std::cout << "Interflop stacktrace : \n";
   __nsan_dump_stacktrace();
-  std::cout << "\n\n";
 }
 
+// std::abs and std::isnan do not natively support __float128
 template <typename T> T abs(T x) { return (x < 0) ? -x : x; }
 template <typename T> bool isnan(T x) { return std::isnan(x); }
 template <> bool isnan(__float128 x) {
   return std::isnan(static_cast<double>(x));
+}
+
+template<typename T>
+T rand()
+{
+  static std::default_random_engine generator(time(NULL));
+  std::uniform_int_distribution<T> distribution(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+  return distribution(generator);
 }
 
 [[noreturn]] void unreachable(const char* str)

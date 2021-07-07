@@ -3,10 +3,14 @@
 
 #ifndef DOUBLEPREC_DEFINITION
 
+#ifndef DOUBLEPREC_DECLARATION
+#define DOUBLEPREC_DECLARATION
 namespace doubleprec {
 
 template <typename> class DoublePrecRuntime;
-template <> class DoublePrecRuntime<void> {
+template <typename, FCmpOpcode> class ShadowFCmp;
+
+class DoublePrecRuntimeInfo {
 public:
   struct shadow128_t {
     double val;
@@ -17,11 +21,13 @@ public:
     __float128 val;
     uint64_t padding[2];
   };
+
+  template <typename FPType> using Runtime = DoublePrecRuntime<FPType>;
 };
-
 } // namespace doubleprec
+#endif
 
-#else
+#elif defined(DOUBLEPREC_DEFINITION)
 
 #pragma once
 #include <cmath>
@@ -29,70 +35,10 @@ public:
 
 #include "Flags.hpp"
 
-#ifdef DOUBLEPREC_DEFINITION
 #include "Shadow.hpp"
-#endif
 #include "Utils.hpp"
 
 namespace doubleprec {
-
-// Helper class to represent a predicate between two shadow value
-// We need to handle the case where the compiler generated an unordered
-// comparison
-template <typename FPType, FCmpOpcode FCOp> class ShadowPredicate {
-public:
-  using ScalarVT = typename shadow_type<FPType>::scalar_type;
-  using ShadowType = typename shadow_type<FPType>::type;
-  using ShadowPtr = ShadowType **;
-  static constexpr size_t VectorSize = shadow_type<FPType>::VectorSize;
-
-  virtual bool Evaluate(ShadowType *LeftOp, ShadowType *RightOp) {
-    // Handle unordered comparisons
-    if (FCOp < kUnorderedFCmp && (utils::isnan<double>(LeftOp->val) ||
-                                  utils::isnan<double>(RightOp->val)))
-      return false;
-
-    // Handle (ordered) comparisons
-    if constexpr (FCOp == kFCmp_oeq || FCOp == kFCmp_ueq)
-      return LeftOp->val == RightOp->val;
-    if constexpr (FCOp == kFCmp_one || FCOp == kFCmp_one)
-      return LeftOp->val != RightOp->val;
-    if constexpr (FCOp == kFCmp_ogt || FCOp == kFCmp_ogt)
-      return LeftOp->val > RightOp->val;
-    if constexpr (FCOp == kFCmp_olt || FCOp == kFCmp_olt)
-      return LeftOp->val < RightOp->val;
-    utils::unreachable("Unknown Predicate");
-  }
-};
-
-
-// Helper class to represent a comparison between two shadow value
-// Handle the case where the shadows are vector and multiple scalar needs to be
-// compared
-template <typename FPType> class ShadowFCmp {
-public:
-  using ScalarVT = typename shadow_type<FPType>::scalar_type;
-  using ShadowType = typename shadow_type<FPType>::type;
-  using ShadowPtr = ShadowType **;
-  static constexpr size_t VectorSize = shadow_type<FPType>::VectorSize;
-
-  template <class ShadowPred>
-  ShadowFCmp(ShadowPred Pred, ShadowPtr LeftOp, ShadowPtr RightOp)
-      : Value(true), LeftOp(LeftOp), RightOp(RightOp) {
-    for (int I = 0; I < VectorSize; I++) {
-      Value = Value && Pred.Evaluate(LeftOp[I], RightOp[I]);
-    }
-  }
-
-  operator bool() const { return Value; }
-  const ShadowPtr getLeftOperand() const { return LeftOp; }
-  const ShadowPtr getRightOperand() const { return RightOp; }
-
-private:
-  bool Value;
-  ShadowPtr LeftOp;
-  ShadowPtr RightOp;
-};
 
 // Double precision runtime using c++ templates
 // Scalar and vectors are treated in the same methods
@@ -137,13 +83,44 @@ public:
     return a / b;
   }
 
-  static bool CheckFCmp(const ShadowFCmp<FPType> &P, bool c, FPType a,
-                        FPType b) {
+  template <FCmpOpcode Opcode> static bool FCmp(ShadowPtr sa, ShadowPtr sb) {
+
+    bool res = true;
+
+    for (int I = 0; res && (I < VectorSize); I++) {
+
+      auto LeftOp = sa[I]->val;
+      auto RightOp = sb[I]->val;
+
+      // Handle unordered comparisons
+      if (Opcode < UnorderedFCmp &&
+          (utils::isnan(LeftOp) || utils::isnan(RightOp)))
+        return true;
+
+      // Handle (ordered) comparisons
+      if constexpr (Opcode == FCmp_oeq || Opcode == FCmp_ueq)
+        res = res && (LeftOp == RightOp);
+      else if constexpr (Opcode == FCmp_one || Opcode == FCmp_one)
+        res = res && (LeftOp != RightOp);
+      else if constexpr (Opcode == FCmp_ogt || Opcode == FCmp_ogt)
+        res = res && (LeftOp > RightOp);
+      else if constexpr (Opcode == FCmp_olt || Opcode == FCmp_olt)
+        res = res && (LeftOp < RightOp);
+      else
+        utils::unreachable("Unknown Predicate");
+    }
+    return res;
+  }
+
+  template <FCmpOpcode Opcode>
+  static bool CheckFCmp(bool c, FPType a, FPType b, ShadowPtr sa,
+                        ShadowPtr sb) {
+    bool res = FCmp<Opcode>(sa, sb);
     // We expect both comparison to be equal, else we print an error
-    if (not RuntimeFlags::DisableWarning && c != P)
-      FCmpCheckFail(a, P.getLeftOperand(), b, P.getRightOperand());
+    if (not RuntimeFlags::DisableWarning && c != res)
+      FCmpCheckFail(a, sa, b, sb);
     // We return the shadow comparison result to be able to correctly branch
-    return P;
+    return res;
   }
 
   // Handles both up and downcast
@@ -186,7 +163,6 @@ public:
 
     double AbsoluteErrror = utils::abs(a - sa[0]->val);
     double RelativeError = utils::abs((AbsoluteErrror / sa[0]->val) * 100);
-
     if (RelativeError >= 0.0001) {
       if (not RuntimeFlags::DisableWarning) {
         std::cout << "\033[1;31m";

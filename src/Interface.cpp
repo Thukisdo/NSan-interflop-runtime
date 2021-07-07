@@ -1,24 +1,23 @@
-#include "runtimes/Runtime.hpp"
+#include "Runtime.hpp"
+
 
 // ===================
 // Shadow constructors
 // ===================
 
-extern "C" void __interflop_float_make_shadow(float a, shadow128_t* res) {
+extern "C" void __interflop_float_make_shadow(float a, shadow128_t *res) {
   Runtime<float>::MakeShadow(a, &res);
 }
 
-extern "C" void __interflop_float_v2_make_shadow(v2float a,
-                                                 v2shadow128_t res) {
+extern "C" void __interflop_float_v2_make_shadow(v2float a, v2shadow128_t res) {
   Runtime<v2float>::MakeShadow(a, res);
 }
 
-extern "C" void __interflop_float_v4_make_shadow(v2float a,
-                                                 v2shadow128_t res) {
+extern "C" void __interflop_float_v4_make_shadow(v2float a, v2shadow128_t res) {
   Runtime<v2float>::MakeShadow(a, res);
 }
 
-extern "C" void __interflop_double_make_shadow(double a, shadow256_t* res) {
+extern "C" void __interflop_double_make_shadow(double a, shadow256_t *res) {
   Runtime<double>::MakeShadow(a, &res);
 }
 
@@ -46,9 +45,8 @@ extern "C" void __interflop_float_double_cast(float a, shadow128_t *sa,
   Runtime<float>::Cast(a, &sa, &res);
 }
 
-
 extern "C" void __interflop_float_v2_double_cast(v2float a, v2shadow128_t sa,
-                                              v2shadow256_t res) {
+                                                 v2shadow256_t res) {
   Runtime<v2float>::Cast(a, sa, res);
 }
 extern "C" void __interflop_double_float_cast(double a, shadow256_t *sa,
@@ -57,7 +55,7 @@ extern "C" void __interflop_double_float_cast(double a, shadow256_t *sa,
 }
 
 extern "C" void __interflop_double_v2_float_cast(v2double a, v2shadow256_t sa,
-                                              v2shadow128_t res) {
+                                                 v2shadow128_t res) {
   Runtime<v2double>::Cast(a, sa, res);
 }
 
@@ -76,10 +74,9 @@ extern "C" double __interflop_double_neg(double a, shadow256_t *sa,
 }
 
 extern "C" v2double __interflop_double_v2_neg(v2double a, v2shadow256_t sa,
-                                         v2shadow256_t res) {
+                                              v2shadow256_t res) {
   return Runtime<v2double>::Neg(a, sa, res);
 }
-
 
 // ================================
 // float binary  operation overload
@@ -247,50 +244,42 @@ extern "C" int __interflop_double_check(double a, shadow256_t *sa) {
 
 extern "C" int __interflop_float_fcmp_oeq(float a, shadow128_t *sa, float b,
                                           shadow128_t *sb) {
-  return Runtime<float>::CheckFCmp(
-      ShadowFCmp<float>(ShadowPredicate<float, kFCmp_oeq>(), &sa, &sb), a == b, a, b);
+  return Runtime<float>::CheckFCmp<FCmp_oeq>(a == b, a, b, &sa, &sb);
 }
 
 extern "C" int __interflop_float_fcmp_one(float a, shadow128_t *sa, float b,
                                           shadow128_t *sb) {
-  return Runtime<float>::CheckFCmp(
-      ShadowFCmp<float>(ShadowPredicate<float, kFCmp_one>(), &sa, &sb), a == b, a, b);
+  return Runtime<float>::CheckFCmp<FCmp_one>(a != b, a, b, &sa, &sb);
 }
 
 extern "C" int __interflop_float_fcmp_ogt(float a, shadow128_t *sa, float b,
                                           shadow128_t *sb) {
-  return Runtime<float>::CheckFCmp(
-      ShadowFCmp<float>(ShadowPredicate<float, kFCmp_ogt>(), &sa, &sb), a == b, a, b);
+  return Runtime<float>::CheckFCmp<FCmp_ogt>(a > b, a, b, &sa, &sb);
 }
 
 extern "C" int __interflop_float_fcmp_olt(float a, shadow128_t *sa, float b,
                                           shadow128_t *sb) {
-  return Runtime<float>::CheckFCmp(
-      ShadowFCmp<float>(ShadowPredicate<float, kFCmp_olt>(), &sa, &sb), a == b, a, b);
+  return Runtime<float>::CheckFCmp<FCmp_olt>(a < b, a, b, &sa, &sb);
 }
 
 extern "C" int __interflop_double_fcmp_oeq(double a, shadow256_t *sa, double b,
                                            shadow256_t *sb) {
-  return Runtime<double>::CheckFCmp(
-      ShadowFCmp<double>(ShadowPredicate<double, kFCmp_oeq>(), &sa, &sb), a == b, a, b);
+  return Runtime<double>::CheckFCmp<FCmp_oeq>(a == b, a, b, &sa, &sb);
 }
 
 extern "C" int __interflop_double_fcmp_one(double a, shadow256_t *sa, double b,
                                            shadow256_t *sb) {
-  return Runtime<double>::CheckFCmp(
-      ShadowFCmp<double>(ShadowPredicate<double, kFCmp_one>(), &sa, &sb), a == b, a, b);
+  return Runtime<double>::CheckFCmp<FCmp_one>(a != b, a, b, &sa, &sb);
 }
 
 extern "C" int __interflop_double_fcmp_ogt(double a, shadow256_t *sa, double b,
                                            shadow256_t *sb) {
-  return Runtime<double>::CheckFCmp(
-      ShadowFCmp<double>(ShadowPredicate<double, kFCmp_ogt>(), &sa, &sb), a == b, a, b);
+  return Runtime<double>::CheckFCmp<FCmp_ogt>(a > b, a, b, &sa, &sb);
 }
 
 extern "C" int __interflop_double_fcmp_olt(double a, shadow256_t *sa, double b,
                                            shadow256_t *sb) {
-  return Runtime<double>::CheckFCmp(
-      ShadowFCmp<double>(ShadowPredicate<double, kFCmp_olt>(), &sa, &sb), a == b, a, b);
+  return Runtime<double>::CheckFCmp<FCmp_olt>(a < b, a, b, &sa, &sb);
 }
 
 // =============================
@@ -299,48 +288,40 @@ extern "C" int __interflop_double_fcmp_olt(double a, shadow256_t *sa, double b,
 
 extern "C" int __interflop_float_fcmp_ueq(float a, shadow128_t *sa, float b,
                                           shadow128_t *sb) {
-  return Runtime<float>::CheckFCmp(
-      ShadowFCmp<float>(ShadowPredicate<float, kFCmp_ueq>(), &sa, &sb), a == b, a, b);
+  return Runtime<float>::CheckFCmp<FCmp_ueq>(a == b, a, b, &sa, &sb);
 }
 
 extern "C" int __interflop_float_fcmp_une(float a, shadow128_t *sa, float b,
                                           shadow128_t *sb) {
-  return Runtime<float>::CheckFCmp(
-      ShadowFCmp<float>(ShadowPredicate<float, kFCmp_une>(), &sa, &sb), a == b, a, b);
+  return Runtime<float>::CheckFCmp<FCmp_une>(a != b, a, b, &sa, &sb);
 }
 
 extern "C" int __interflop_float_fcmp_ugt(float a, shadow128_t *sa, float b,
                                           shadow128_t *sb) {
-  return Runtime<float>::CheckFCmp(
-      ShadowFCmp<float>(ShadowPredicate<float, kFCmp_ugt>(), &sa, &sb), a == b, a, b);
+  return Runtime<float>::CheckFCmp<FCmp_ugt>(a > b, a, b, &sa, &sb);
 }
 
 extern "C" int __interflop_float_fcmp_ult(float a, shadow128_t *sa, float b,
                                           shadow128_t *sb) {
-  return Runtime<float>::CheckFCmp(
-      ShadowFCmp<float>(ShadowPredicate<float, kFCmp_ult>(), &sa, &sb), a == b, a, b);
+  return Runtime<float>::CheckFCmp<FCmp_ult>(a < b, a, b, &sa, &sb);
 }
 
 extern "C" int __interflop_double_fcmp_ueq(double a, shadow256_t *sa, double b,
                                            shadow256_t *sb) {
-  return Runtime<double>::CheckFCmp(
-      ShadowFCmp<double>(ShadowPredicate<double, kFCmp_ueq>(), &sa, &sb), a == b, a, b);
+  return Runtime<double>::CheckFCmp<FCmp_ueq>(a == b, a, b, &sa, &sb);
 }
 
 extern "C" int __interflop_double_fcmp_une(double a, shadow256_t *sa, double b,
                                            shadow256_t *sb) {
-  return Runtime<double>::CheckFCmp(
-      ShadowFCmp<double>(ShadowPredicate<double, kFCmp_une>(), &sa, &sb), a == b, a, b);
+  return Runtime<double>::CheckFCmp<FCmp_une>(a != b, a, b, &sa, &sb);
 }
 
 extern "C" int __interflop_double_fcmp_ugt(double a, shadow256_t *sa, double b,
                                            shadow256_t *sb) {
-  return Runtime<double>::CheckFCmp(
-      ShadowFCmp<double>(ShadowPredicate<double, kFCmp_ugt>(), &sa, &sb), a == b, a, b);
+  return Runtime<double>::CheckFCmp<FCmp_ugt>(a > b, a, b, &sa, &sb);
 }
 
 extern "C" int __interflop_double_fcmp_ult(double a, shadow256_t *sa, double b,
                                            shadow256_t *sb) {
-  return Runtime<double>::CheckFCmp(
-      ShadowFCmp<double>(ShadowPredicate<double, kFCmp_ult>(), &sa, &sb), a == b, a, b);
+  return Runtime<double>::CheckFCmp<FCmp_ult>(a < b, a, b, &sa, &sb);
 }

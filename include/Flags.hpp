@@ -3,6 +3,6 @@
 // We should fill this struct one way or another
 struct RuntimeFlags {
     static constexpr bool ExitOnError = false;
-    static constexpr bool DisableWarning = true;
+    static constexpr bool DisableWarning = false;
 };
 
