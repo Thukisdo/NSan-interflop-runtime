@@ -13,8 +13,8 @@ extern "C" void __interflop_float_v2_make_shadow(v2float a, v2shadow128_t res) {
   Runtime<v2float>::MakeShadow(a, res);
 }
 
-extern "C" void __interflop_float_v4_make_shadow(v2float a, v2shadow128_t res) {
-  Runtime<v2float>::MakeShadow(a, res);
+extern "C" void __interflop_float_v4_make_shadow(v4float a, v4shadow128_t res) {
+  Runtime<v4float>::MakeShadow(a, res);
 }
 
 extern "C" void __interflop_double_make_shadow(double a, shadow256_t *res) {

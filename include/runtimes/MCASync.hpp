@@ -96,14 +96,14 @@ float StochasticRound(float x) {
   if (utils::abs(x) < std::numeric_limits<float>::min()) {
     Float64 Res(oneF64.i64 | (RandomBits >> 12));
     Res.f64 -= 1.5;
-    return std::roundf(x + eps_F32.f64 * Res.f64);
+    return x + eps_F32.f64 * Res.f64;
   }
 
   Float64 ExtendedFP(x);
   // arithmetic bitshift and |1 to create a random integer that is in (-u/2,u/2)
   // always set last random bit to 1 to avoid the creation of -u/2
   ExtendedFP.i64 += (RandomBits >> 35) | 1;
-  return std::roundf(ExtendedFP.f64);
+  return ExtendedFP.f64;
 }
 
 // Helper struct for type puning f128 -> ui128
@@ -135,13 +135,13 @@ double StochasticRound(double x) {
   if (utils::abs(x) < std::numeric_limits<double>::min()) {
     Float128 Res(oneF128.i128 | (RandomBits >> 12));
     Res.f128 -= 1.5;
-    return roundf(x + eps_F64.f128 * Res.f128);
+    return x + eps_F64.f128 * Res.f128;
   }
   Float128 ExtendedFP(x);
   // arithmetic bitshift and |1 to create a random integer that is in (-u/2,u/2)
   // always set last random bit to 1 to avoid the creating of -u/2
-  ExtendedFP.i128 = (ExtendedFP.i128 + (RandomBits >> 35)) | 1;
-  return roundf(ExtendedFP.f128);
+  ExtendedFP.i128 = (ExtendedFP.i128 + (RandomBits >> 68)) | 1;
+  return ExtendedFP.f128;
 }
 
 
@@ -265,13 +265,13 @@ public:
       // We need a constexpr if to prevent the compiler from evaluating a[I] if
       // its a scalar
       if constexpr (VectorSize > 1) {
-        res[I]->val[0] = a[I];
-        res[I]->val[1] = a[I];
-        res[I]->val[2] = a[I];
+        res[I]->val[0] = StochasticRound(a[I]);
+        res[I]->val[1] = StochasticRound(a[I]);
+        res[I]->val[2] = StochasticRound(a[I]);
       } else {
-        res[0]->val[0] = a;
-        res[0]->val[1] = a;
-        res[0]->val[2] = a;
+        res[0]->val[0] = StochasticRound(a);
+        res[0]->val[1] = StochasticRound(a);
+        res[0]->val[2] = StochasticRound(a);
       }
     }
   }
@@ -287,23 +287,22 @@ public:
       return Res;
     }
 
-    double Mean = (sa[0]->val[0] + sa[0]->val[1] + sa[0]->val[2]) / 3;
+    double Mean = (sa[0]->val[0] + sa[0]->val[1] + sa[0]->val[2]) / 3.0;
 
     double Variance = 0;
     for (int I = 0; I < 3; I++) {
-      Variance += pow(Mean - sa[0]->val[0], 2);
+      Variance += pow(sa[0]->val[0] - Mean, 2.0);
     }
-    Variance /= 3;
-    double Exp = std::log10(utils::abs(Variance / Mean));
-
-    if (Exp >= 5.0) {
+    Variance /= 3.0;
+    double SignificantDigit = -std::log10(utils::abs(sqrt(Variance) / Mean));
+    if (SignificantDigit <= 15.0) {
       if (not RuntimeFlags::DisableWarning) {
         std::cout << "\033[1;31m";
         std::cout << "[MCASync] Inconsistent shadow result :" << std::endl;
-        std::cout << "\tNative Value: " << std::setprecision(10) << a
+        std::cout << "\tNative Value: " << std::setprecision(20) << a
                   << std::endl;
         std::cout << "\tShadow Value: \n\t  " << *sa[0] << std::endl;
-        std::cout << "E : " << Exp << " Variance: " << Variance << std::endl;
+        std::cout << "SignificantDigit : " << SignificantDigit << " Variance: " << Variance << std::endl;
         utils::DumpStacktrace();
         std::cout << "\033[0m";
       }
@@ -321,7 +320,7 @@ private:
     std::cout
         << "[MCASync] Floating-point comparison results depend on precision"
         << std::endl;
-    std::cout << "\tValue a: " << std::setprecision(10) << a << " b: " << b
+    std::cout << "\tValue a: " << std::setprecision(20) << a << " b: " << b
               << std::endl;
     std::cout << "Shadow a:\n";
     for (int I = 0; I < VectorSize; I++) {
