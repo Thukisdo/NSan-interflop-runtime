@@ -1,7 +1,8 @@
 #include <iostream>
 #include <limits>
 
-#ifndef DOUBLEPREC_DEFINITION
+// We declare the shadow type used by this backend, and the runtime class
+#ifndef RUNTIME_DEFINITION
 
 #ifndef DOUBLEPREC_DECLARATION
 #define DOUBLEPREC_DECLARATION
@@ -27,7 +28,9 @@ public:
 } // namespace doubleprec
 #endif
 
-#elif defined(DOUBLEPREC_DEFINITION)
+// The actual backend should only be defined once in Interface.cpp, the rest of
+// the library should only rely on the definitions above
+#elif defined(RUNTIME_DEFINITION)
 
 #pragma once
 #include <cmath>

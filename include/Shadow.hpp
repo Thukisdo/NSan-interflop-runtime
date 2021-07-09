@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include "Utils.hpp"
-#include "Runtime.hpp"
 
 typedef shadow128_t* v2shadow128_t[2];
 typedef shadow128_t* v4shadow128_t[4];

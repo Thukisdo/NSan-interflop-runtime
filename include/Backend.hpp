@@ -15,10 +15,11 @@ enum FCmpOpcode {
 };
 
 // Define the shadow types
-#include "runtimes/DoublePrec.hpp"
-#include "runtimes/MCASync.hpp"
+#include "backends/DoublePrec.hpp"
+#include "backends/MCASync.hpp"
 
-using RuntimeInfo = mcasync::MSASyncRuntimeInfo;
+// using RuntimeInfo = mcasync::MSASyncRuntimeInfo;
+using RuntimeInfo = doubleprec::DoublePrecRuntimeInfo;
 
 // We need to know the used runtime at compile time so hot functions may be
 // inlined
@@ -31,11 +32,10 @@ using shadow256_t = RuntimeInfo::shadow256_t;
 #include "Shadow.hpp"
 
 // Actually define the runtime
-#define DOUBLEPREC_DEFINITION
-#include "runtimes/DoublePrec.hpp"
-#undef DOUBLEPREC_DEFINITION
+#ifdef BACKEND_DEFINITION
+#define RUNTIME_DEFINITION
 
-// Actually define the runtime
-#define MCASYNC_DEFINITION
-#include "runtimes/MCASync.hpp"
-#undef MCASYNC_DEFINITION
+#include "backends/DoublePrec.hpp"
+
+#undef RUNTIME_DEFINITION
+#endif

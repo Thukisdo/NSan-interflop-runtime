@@ -6,7 +6,7 @@
 // The stl does not provide a typedef for uint128
 typedef unsigned __int128 uint128_t;
 
-#ifndef MCASYNC_DEFINITION
+#ifndef RUNTIME_DEFINITION
 
 #ifndef MCASYNC_DECLARATION
 #define MCASYNC_DECLARATION
@@ -46,7 +46,7 @@ public:
 } // namespace mcasync
 #endif
 
-#elif defined(MCASYNC_DEFINITION)
+#elif defined(RUNTIME_DEFINITION)
 
 #pragma once
 #include <cmath>
@@ -295,7 +295,7 @@ public:
     }
     Variance /= 3.0;
     double SignificantDigit = -std::log10(utils::abs(sqrt(Variance) / Mean));
-    if (SignificantDigit <= 15.0) {
+    if (SignificantDigit <= 10.0) {
       if (not RuntimeFlags::DisableWarning) {
         std::cout << "\033[1;31m";
         std::cout << "[MCASync] Inconsistent shadow result :" << std::endl;
