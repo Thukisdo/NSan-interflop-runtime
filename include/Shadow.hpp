@@ -1,67 +1,72 @@
-#pragma once 
-
-#include <iostream>
+#pragma once
 #include "Utils.hpp"
+#include <iostream>
 
-typedef shadow128_t* v2shadow128_t[2];
-typedef shadow128_t* v4shadow128_t[4];
-typedef shadow128_t* v8shadow128_t[8];
-
-typedef shadow256_t* v2shadow256_t[2];
-typedef shadow256_t* v4shadow256_t[4];
-typedef shadow256_t* v8shadow256_t[8];
-
-
-template<typename>
-struct shadow_type {
-    
+namespace interflop {
+struct OpaqueShadow128 {
+  uint64_t opaque[2];
 };
 
-template<>
-struct shadow_type<float> {
-    using type = shadow128_t;
-    using scalar_type = float;
-    static constexpr size_t VectorSize = 1;
+struct OpaqueShadow256 {
+  uint64_t opaque[4];
 };
 
-template<>
-struct shadow_type<v2float> {
-    using type = shadow128_t;
-    using scalar_type = float;
-    static constexpr size_t VectorSize = 2;
+typedef OpaqueShadow128 *v2OpaqueShadow128[2];
+typedef OpaqueShadow128 *v4OpaqueShadow128[4];
+typedef OpaqueShadow128 *v8OpaqueShadow128[8];
+
+typedef OpaqueShadow256 *v2OpaqueShadow256[2];
+typedef OpaqueShadow256 *v4OpaqueShadow256[4];
+typedef OpaqueShadow256 *v8OpaqueShadow256[8];
+
+template <typename> struct FPTypeInfo {};
+
+template <> struct FPTypeInfo<float> {
+  using ShadowType = OpaqueShadow128;
+  using ScalarType = float;
+  static constexpr utils::FPType Type = utils::kFloat;
+  static constexpr size_t VectorSize = 1;
 };
 
-template<>
-struct shadow_type<v4float> {
-    using type = shadow128_t;
-    using scalar_type = float;
-    static constexpr size_t VectorSize = 4;
+template <> struct FPTypeInfo<v2float> {
+  using ShadowType = OpaqueShadow128;
+  using ScalarType = float;
+  static constexpr utils::FPType Type = utils::kV2Float;
+  static constexpr size_t VectorSize = 2;
 };
 
-template<>
-struct shadow_type<double> {
-    using type = shadow256_t;
-    using scalar_type = double;
-    static constexpr size_t VectorSize = 1;
+template <> struct FPTypeInfo<v4float> {
+  using ShadowType = OpaqueShadow128;
+  using ScalarType = float;
+  static constexpr utils::FPType Type = utils::kV4Float;
+  static constexpr size_t VectorSize = 4;
 };
 
-template<>
-struct shadow_type<v2double> {
-    using type = shadow256_t;
-    using scalar_type = double;
-    static constexpr size_t VectorSize = 2;
+template <> struct FPTypeInfo<double> {
+  using ShadowType = OpaqueShadow256;
+  using ScalarType = double;
+  static constexpr utils::FPType Type = utils::kDouble;
+  static constexpr size_t VectorSize = 1;
 };
 
-template<>
-struct shadow_type<v4double> {
-    using type = shadow256_t;
-    using scalar_type = double;
-    static constexpr size_t VectorSize = 4;
+template <> struct FPTypeInfo<v2double> {
+  using ShadowType = OpaqueShadow256;
+  using ScalarType = double;
+  static constexpr utils::FPType Type = utils::kV2Double;
+  static constexpr size_t VectorSize = 2;
 };
 
-template<>
-struct shadow_type<v8double> {
-    using type = shadow256_t;
-    using scalar_type = double;
-    static constexpr size_t VectorSize = 8;
+template <> struct FPTypeInfo<v4double> {
+  using ShadowType = OpaqueShadow256;
+  using ScalarType = double;
+  static constexpr utils::FPType Type = utils::kV4Double;
+  static constexpr size_t VectorSize = 4;
 };
+
+template <> struct FPTypeInfo<v8double> {
+  using ShadowType = OpaqueShadow256;
+  using ScalarType = double;
+  static constexpr utils::FPType Type = utils::kV8Double;
+  static constexpr size_t VectorSize = 8;
+};
+}

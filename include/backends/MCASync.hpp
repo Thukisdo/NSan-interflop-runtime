@@ -1,340 +1,330 @@
+#pragma once
 #include <cassert>
+#include <cmath>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
 #include <limits>
 
-// The stl does not provide a typedef for uint128
-typedef unsigned __int128 uint128_t;
-
-#ifndef RUNTIME_DEFINITION
-
-#ifndef MCASYNC_DECLARATION
-#define MCASYNC_DECLARATION
-namespace mcasync {
-
-template <typename> class MCASyncRuntime;
-template <typename, FCmpOpcode> class ShadowFCmp;
-
-class MSASyncRuntimeInfo {
-public:
-  struct shadow128_t {
-    float val[3];
-    uint32_t padding[1];
-
-    // helper methods for printing / acessing one of the shadow float
-    friend std::ostream &operator<<(std::ostream &os, shadow128_t const &s);
-    inline float operator[](size_t const index) const {
-      assert(index < 3);
-      return val[index];
-    }
-  };
-
-  struct shadow256_t {
-    double val[3];
-    uint64_t padding[1];
-
-    // helper methods for printing / acessing one of the shadow double
-    friend std::ostream &operator<<(std::ostream &os, shadow256_t const &s);
-    inline double operator[](size_t const index) const {
-      assert(index < 3);
-      return val[index];
-    }
-  };
-
-  template <typename FPType> using Runtime = MCASyncRuntime<FPType>;
-};
-} // namespace mcasync
-#endif
-
-#elif defined(RUNTIME_DEFINITION)
-
-#pragma once
-#include <cmath>
-#include <iomanip>
-
+#include "Backend.hpp"
 #include "Flags.hpp"
-
 #include "Shadow.hpp"
 #include "Utils.hpp"
 
+namespace interflop {
 namespace mcasync {
 
-// we print the mean value + every element of s
-std::ostream &operator<<(std::ostream &os, shadow128_t const &s) {
-  auto mean = (s[0] + s[1] + s[2]) / 3;
-  std::cout << "[mean: " << mean << ", " << s[0] << ", " << s[1] << ", " << s[2]
-            << "]";
-  return os;
-}
+typedef __int128_t unsigned uint128_t;
 
-std::ostream &operator<<(std::ostream &os, shadow256_t const &s) {
-  auto mean = (s[0] + s[1] + s[2]) / 3;
-  std::cout << "[mean: " << mean << ", " << s[0] << ", " << s[1] << ", " << s[2]
-            << "]";
-  return os;
-}
+struct MCASyncShadow128 {
+  float val[3];
+  uint32_t padding[1];
 
-// Helper struct for type puning double -> ui64
-struct Float64 {
-  Float64(double f) : f64(f) {}
-  Float64(uint64_t i) : i64(i) {}
-
-  union {
-    double f64;
-    uint64_t i64;
-  };
+  // helper methods for printing / acessing one of the shadow float
+  friend std::ostream &operator<<(std::ostream &os, MCASyncShadow128 const &s);
+  inline float operator[](size_t const index) const {
+    assert(index < 3);
+    return val[index];
+  }
 };
 
-float StochasticRound(float x) {
-  static const Float64 oneF64 = 1.0;
-  static const Float64 eps_F32 =
-      std::nextafter((double)std::nextafter(0.0f, 1.0f), 0.0);
+struct MCASyncShadow256 {
+  double val[3];
+  uint64_t padding[1];
 
-  uint64_t RandomBits = utils::rand<uint64_t>();
-  // subnormals are rounded with float-arithmetic for uniform stoch perturbation
-  // (Magic)
-  if (utils::abs(x) < std::numeric_limits<float>::min()) {
-    Float64 Res(oneF64.i64 | (RandomBits >> 12));
-    Res.f64 -= 1.5;
-    return x + eps_F32.f64 * Res.f64;
+  // helper methods for printing / acessing one of the shadow double
+  friend std::ostream &operator<<(std::ostream &os, MCASyncShadow256 const &s);
+  inline double operator[](size_t const index) const {
+    assert(index < 3);
+    return val[index];
   }
-
-  Float64 ExtendedFP(x);
-  // arithmetic bitshift and |1 to create a random integer that is in (-u/2,u/2)
-  // always set last random bit to 1 to avoid the creation of -u/2
-  ExtendedFP.i64 += (RandomBits >> 35) | 1;
-  return ExtendedFP.f64;
-}
-
-// Helper struct for type puning f128 -> ui128
-struct Float128 {
-  Float128(__float128 f) : f128(f) {}
-  Float128(__uint128_t i) : i128(i) {}
-  Float128(double f)
-      : f128(f) {} // Strangely, the compiler doesn't know wether to implicitly
-                   // convert a double to f128 or i128, hence we need a double ctor
-                   // to avoit the cast altogether
-
-  union {
-    __float128 f128;
-    __uint128_t i128;
-  };
 };
 
 // Adapted from a Julia rounding code
 // https://github.com/milankl/StochasticRounding.jl/blob/main/src/float32sr.jl
-double StochasticRound(double x) {
-  static const Float128 oneF128 = 1.0;
-  static const Float128 eps_F64 =
-      std::nextafter((double)std::nextafter(0.0f, 1.0f), 0.0);
 
-  uint128_t RandomBits = utils::rand<uint64_t>();
-  RandomBits |= ((uint128_t)utils::rand<uint64_t>()) << 64;
-  // subnormals are round with float-arithmetic for uniform stoch perturbation
-  // (Magic)
-  if (utils::abs(x) < std::numeric_limits<double>::min()) {
-    Float128 Res(oneF128.i128 | (RandomBits >> 12));
-    Res.f128 -= 1.5;
-    return x + eps_F64.f128 * Res.f128;
-  }
-  Float128 ExtendedFP(x);
-  // arithmetic bitshift and |1 to create a random integer that is in (-u/2,u/2)
-  // always set last random bit to 1 to avoid the creating of -u/2
-  ExtendedFP.i128 = (ExtendedFP.i128 + (RandomBits >> 68)) | 1;
-  return ExtendedFP.f128;
-}
+float StochasticRound(float x);
+// Adapted from a Julia rounding code
+// https://github.com/milankl/StochasticRounding.jl/blob/main/src/float32sr.jl
+double StochasticRound(double x);
 
+template <typename ShadowTy> struct MCASyncShadowTy {
+  using Type =
+      typename std::conditional<std::is_same<ShadowTy, OpaqueShadow128>::value,
+                                MCASyncShadow128, MCASyncShadow256>::type;
+};
 
 // Double precision runtime using c++ templates
 // Scalar and vectors are treated in the same methods
-template <typename FPType> class MCASyncRuntime {
+template <typename FPType>
+class MCASyncRuntime : public InterflopBackend<FPType> {
 public:
-  using ScalarVT = typename shadow_type<FPType>::scalar_type;
-  using ShadowType = typename shadow_type<FPType>::type;
-  using ShadowPtr = ShadowType **;
-  static constexpr size_t VectorSize = shadow_type<FPType>::VectorSize;
+  using ScalarVT = typename FPTypeInfo<FPType>::ScalarType;
+  using ShadowTy = typename FPTypeInfo<FPType>::ShadowType;
+  using MCASyncShadow = typename MCASyncShadowTy<ShadowTy>::Type;
+  static constexpr size_t VectorSize = FPTypeInfo<FPType>::VectorSize;
 
-  // The class should be used statically
-  MCASyncRuntime() = delete;
-  MCASyncRuntime(MCASyncRuntime const &) = delete;
+  MCASyncRuntime(RuntimeStats *Stats) : InterflopBackend<FPType>(Stats) {}
+  virtual ~MCASyncRuntime() = default;
 
   // Binary operator overload
-  static FPType Add(FPType a, ShadowPtr const sa, FPType b, ShadowPtr const sb,
-                    ShadowPtr res) {
-    for (int I = 0; I < VectorSize; I++) {
-      res[I]->val[0] = StochasticRound(sa[I]->val[0] + sb[I]->val[0]);
-      res[I]->val[1] = StochasticRound(sa[I]->val[1] + sb[I]->val[1]);
-      res[I]->val[2] = StochasticRound(sa[I]->val[2] + sb[I]->val[2]);
-    }
-    return a + b;
-  }
+  virtual FPType Add(FPType LeftOp, ShadowTy **LeftOpaqueShadow, FPType RightOp,
+                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) override {
 
-  static FPType Sub(FPType a, ShadowPtr sa, FPType b, ShadowPtr sb,
-                    ShadowPtr res) {
-    for (int I = 0; I < VectorSize; I++) {
-      res[I]->val[0] = StochasticRound(sa[I]->val[0] - sb[I]->val[0]);
-      res[I]->val[1] = StochasticRound(sa[I]->val[1] - sb[I]->val[1]);
-      res[I]->val[2] = StochasticRound(sa[I]->val[2] - sb[I]->val[2]);
-    }
-    return a - b;
-  }
-
-  static FPType Mul(FPType a, ShadowPtr sa, FPType b, ShadowPtr sb,
-                    ShadowPtr res) {
-    for (int I = 0; I < VectorSize; I++) {
-      res[I]->val[0] = StochasticRound(sa[I]->val[0] * sb[I]->val[0]);
-      res[I]->val[1] = StochasticRound(sa[I]->val[1] * sb[I]->val[1]);
-      res[I]->val[2] = StochasticRound(sa[I]->val[2] * sb[I]->val[2]);
-    }
-    return a * b;
-  }
-
-  static FPType Div(FPType a, ShadowPtr sa, FPType b, ShadowPtr sb,
-                    ShadowPtr res) {
+    MCASyncShadow **LeftShadow =
+        reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
+    MCASyncShadow **RightShadow =
+        reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
+    MCASyncShadow **ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
-      res[I]->val[0] = StochasticRound(sa[I]->val[0] / sb[I]->val[0]);
-      res[I]->val[1] = StochasticRound(sa[I]->val[1] / sb[I]->val[1]);
-      res[I]->val[2] = StochasticRound(sa[I]->val[2] / sb[I]->val[2]);
+      ResShadow[I]->val[0] =
+          StochasticRound(LeftShadow[I]->val[0] + RightShadow[I]->val[0]);
+      ResShadow[I]->val[1] =
+          StochasticRound(LeftShadow[I]->val[1] + RightShadow[I]->val[1]);
+      ResShadow[I]->val[2] =
+          StochasticRound(LeftShadow[I]->val[2] + RightShadow[I]->val[2]);
     }
-    return a / b;
+    return LeftOp + RightOp;
   }
 
-  template <FCmpOpcode Opcode> static bool FCmp(ShadowPtr sa, ShadowPtr sb) {
+  virtual FPType Sub(FPType LeftOp, ShadowTy **LeftOpaqueShadow, FPType RightOp,
+                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) {
 
-    bool res = true;
+    MCASyncShadow **LeftShadow =
+        reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
+    MCASyncShadow **RightShadow =
+        reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
+    MCASyncShadow **ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
 
-    for (int I = 0; res && (I < VectorSize); I++) {
-
-      double LeftOp = (sa[I]->val[0] + sa[I]->val[1] + sa[I]->val[2]) / 3;
-      double RightOp = (sb[I]->val[0] + sb[I]->val[1] + sb[I]->val[2]) / 3;
-
-      // Handle unordered comparisons
-      if (Opcode < UnorderedFCmp &&
-          (utils::isnan(LeftOp) || utils::isnan(RightOp)))
-        return true;
-
-      // Handle (ordered) comparisons
-      if constexpr (Opcode == FCmp_oeq || Opcode == FCmp_ueq)
-        res = res && (LeftOp == RightOp);
-      else if constexpr (Opcode == FCmp_one || Opcode == FCmp_one)
-        res = res && (LeftOp != RightOp);
-      else if constexpr (Opcode == FCmp_ogt || Opcode == FCmp_ogt)
-        res = res && (LeftOp > RightOp);
-      else if constexpr (Opcode == FCmp_olt || Opcode == FCmp_olt)
-        res = res && (LeftOp < RightOp);
-      else
-        utils::unreachable("Unknown Predicate");
+    for (int I = 0; I < VectorSize; I++) {
+      ResShadow[I]->val[0] =
+          StochasticRound(LeftShadow[I]->val[0] - RightShadow[I]->val[0]);
+      ResShadow[I]->val[1] =
+          StochasticRound(LeftShadow[I]->val[1] - RightShadow[I]->val[1]);
+      ResShadow[I]->val[2] =
+          StochasticRound(LeftShadow[I]->val[2] - RightShadow[I]->val[2]);
     }
-    return res;
+    return LeftOp - RightOp;
   }
 
-  template <FCmpOpcode Opcode>
-  static bool CheckFCmp(bool c, FPType a, FPType b, ShadowPtr sa,
-                        ShadowPtr sb) {
-    bool res = FCmp<Opcode>(sa, sb);
+  virtual FPType Mul(FPType LeftOp, ShadowTy **LeftOpaqueShadow, FPType RightOp,
+                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) {
+
+    MCASyncShadow **LeftShadow =
+        reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
+    MCASyncShadow **RightShadow =
+        reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
+    MCASyncShadow **ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
+
+    for (int I = 0; I < VectorSize; I++) {
+      ResShadow[I]->val[0] =
+          StochasticRound(LeftShadow[I]->val[0] * RightShadow[I]->val[0]);
+      ResShadow[I]->val[1] =
+          StochasticRound(LeftShadow[I]->val[1] * RightShadow[I]->val[1]);
+      ResShadow[I]->val[2] =
+          StochasticRound(LeftShadow[I]->val[2] * RightShadow[I]->val[2]);
+    }
+    return LeftOp * RightOp;
+  }
+
+  virtual FPType Div(FPType LeftOp, ShadowTy **LeftOpaqueShadow, FPType RightOp,
+                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) {
+
+    MCASyncShadow **LeftShadow =
+        reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
+    MCASyncShadow **RightShadow =
+        reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
+    MCASyncShadow **ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
+
+    for (int I = 0; I < VectorSize; I++) {
+      ResShadow[I]->val[0] =
+          StochasticRound(LeftShadow[I]->val[0] / RightShadow[I]->val[0]);
+      ResShadow[I]->val[1] =
+          StochasticRound(LeftShadow[I]->val[1] / RightShadow[I]->val[1]);
+      ResShadow[I]->val[2] =
+          StochasticRound(LeftShadow[I]->val[2] / RightShadow[I]->val[2]);
+    }
+    return LeftOp / RightOp;
+  }
+
+  /*   template <FCmpOpcode Opcode> bool FCmp(ShadowTy **sa, ShadowTy **sb) {
+
+      bool res = true;
+
+      for (int I = 0; res && (I < VectorSize); I++) {
+
+        double LeftOp = (sa[I]->val[0] + sa[I]->val[1] + sa[I]->val[2]) / 3;
+        double RightOp = (sb[I]->val[0] + sb[I]->val[1] + sb[I]->val[2]) / 3;
+
+        // Handle unordered comparisons
+        if (Opcode < UnorderedFCmp &&
+            (utils::isnan(LeftOp) || utils::isnan(RightOp)))
+          return true;
+
+        // Handle (ordered) comparisons
+        if constexpr (Opcode == FCmp_oeq || Opcode == FCmp_ueq)
+          res = res && (LeftOp == RightOp);
+        else if constexpr (Opcode == FCmp_one || Opcode == FCmp_one)
+          res = res && (LeftOp != RightOp);
+        else if constexpr (Opcode == FCmp_ogt || Opcode == FCmp_ogt)
+          res = res && (LeftOp > RightOp);
+        else if constexpr (Opcode == FCmp_olt || Opcode == FCmp_olt)
+          res = res && (LeftOp < RightOp);
+        else
+          utils::unreachable("Unknown Predicate");
+      }
+      return res;
+    } */
+
+  virtual bool CheckFCmp(const FCmpOpcode Opcode, FPType a, ShadowTy **sa,
+                         FPType b, ShadowTy **sb) {
+
+    return true;
+    /* bool res = FCmp<Opcode>(sa, sb);
     // We expect both comparison to be equal, else we print an error
     if (not RuntimeFlags::DisableWarning && c != res)
       FCmpCheckFail(a, sa, b, sb);
     // We return the shadow comparison result to be able to correctly branch
-    return res;
+    return res; */
   }
 
-  // Handles both up and downcast
-  // FIXME : add type checking for the destination shadow
-  template <typename DestVT>
-  static void Cast(FPType a, ShadowPtr sa, DestVT **res) {
+  virtual void DownCast(FPType Operand, ShadowTy **OperandShadow,
+                        OpaqueShadow128 **Res) {
+    MCASyncShadow **Shadow = reinterpret_cast<MCASyncShadow **>(OperandShadow);
+    MCASyncShadow128 **Destination = reinterpret_cast<MCASyncShadow128 **>(Res);
+
+    Cast(Operand, Shadow, Destination);
+  }
+
+  virtual void UpCast(FPType Operand, ShadowTy **OperandShadow,
+                      OpaqueShadow256 **Res) {
+    MCASyncShadow **Shadow = reinterpret_cast<MCASyncShadow **>(OperandShadow);
+    MCASyncShadow256 **Destination = reinterpret_cast<MCASyncShadow256 **>(Res);
+
+    Cast(Operand, Shadow, Destination);
+  }
+
+  virtual FPType Neg(FPType Operand, ShadowTy **OperandShadow, ShadowTy **Res) {
+
+    MCASyncShadow **Shadow = reinterpret_cast<MCASyncShadow **>(OperandShadow);
+    MCASyncShadow **ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
+
     for (int I = 0; I < VectorSize; I++) {
-      res[I]->val[0] = sa[I]->val[0];
-      res[I]->val[1] = sa[I]->val[1];
-      res[I]->val[2] = sa[I]->val[2];
+      ResShadow[I]->val[0] = -Shadow[I]->val[0];
+      ResShadow[I]->val[1] = -Shadow[I]->val[1];
+      ResShadow[I]->val[2] = -Shadow[I]->val[2];
     }
+    return -Operand;
   }
 
-  static FPType Neg(FPType a, ShadowPtr sa, ShadowPtr res) {
-    for (int I = 0; I < VectorSize; I++) {
-      res[I]->val[0] = -sa[I]->val[0];
-      res[I]->val[1] = -sa[I]->val[1];
-      res[I]->val[2] = -sa[I]->val[2];
-    }
-    return -a;
-  }
+  virtual void MakeShadow(FPType Source, ShadowTy **Res) {
 
-  static void MakeShadow(FPType a, ShadowPtr res) {
+    MCASyncShadow **ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
+
     for (int I = 0; I < VectorSize; I++) {
       // We need a constexpr if to prevent the compiler from evaluating a[I] if
       // its a scalar
       if constexpr (VectorSize > 1) {
-        res[I]->val[0] = StochasticRound(a[I]);
-        res[I]->val[1] = StochasticRound(a[I]);
-        res[I]->val[2] = StochasticRound(a[I]);
+        ResShadow[I]->val[0] = StochasticRound(Source[I]);
+        ResShadow[I]->val[1] = StochasticRound(Source[I]);
+        ResShadow[I]->val[2] = StochasticRound(Source[I]);
       } else {
-        res[0]->val[0] = StochasticRound(a);
-        res[0]->val[1] = StochasticRound(a);
-        res[0]->val[2] = StochasticRound(a);
+        ResShadow[0]->val[0] = StochasticRound(Source);
+        ResShadow[0]->val[1] = StochasticRound(Source);
+        ResShadow[0]->val[2] = StochasticRound(Source);
       }
     }
   }
 
-  static int Check(FPType a, ShadowPtr sa) {
+  virtual bool Check(FPType Operand, ShadowTy **ShadowOperand) {
 
+    MCASyncShadow **Shadow = reinterpret_cast<MCASyncShadow **>(ShadowOperand);
+
+    bool Res = 0;
     // We unvectorize the check
+    // We shall not acess Operand[I] if we're not working on vectors
     if constexpr (VectorSize > 1) {
-      bool Res = 0;
-      for (int I = 0; I < VectorSize; I++) {
-        Res = Res || MCASyncRuntime<ScalarVT>::Check(a[I], &sa[I]);
-      }
+      for (int I = 0; not Res && (I < VectorSize); I++)
+        Res = Res || CheckInternal(Operand[I], Shadow[I]);
       return Res;
-    }
-
-    double Mean = (sa[0]->val[0] + sa[0]->val[1] + sa[0]->val[2]) / 3.0;
-
-    double Variance = 0;
-    for (int I = 0; I < 3; I++) {
-      Variance += pow(sa[0]->val[0] - Mean, 2.0);
-    }
-    Variance /= 3.0;
-    double SignificantDigit = -std::log10(utils::abs(sqrt(Variance) / Mean));
-    if (SignificantDigit <= 10.0) {
-      if (not RuntimeFlags::DisableWarning) {
-        std::cout << "\033[1;31m";
-        std::cout << "[MCASync] Inconsistent shadow result :" << std::endl;
-        std::cout << "\tNative Value: " << std::setprecision(20) << a
-                  << std::endl;
-        std::cout << "\tShadow Value: \n\t  " << *sa[0] << std::endl;
-        std::cout << "SignificantDigit : " << SignificantDigit << " Variance: " << Variance << std::endl;
-        utils::DumpStacktrace();
-        std::cout << "\033[0m";
-      }
+    } else
+      Res = CheckInternal(Operand, Shadow[0]);
+    if (Res) {
+      InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::Check);
+      if (not RuntimeFlags::DisableWarning)
+        CheckFail(Operand, Shadow);
       if (RuntimeFlags::ExitOnError)
         exit(1);
-      return 1;
     }
-    return 0;
+    return Res;
   }
 
 private:
-  static void FCmpCheckFail(FPType a, ShadowPtr sa, FPType b, ShadowPtr sb) {
+  template <typename DestType>
+  void Cast(FPType a, MCASyncShadow **Shadow, DestType Res) {
+    for (int I = 0; I < VectorSize; I++) {
+      Res[I]->val[0] = Shadow[I]->val[0];
+      Res[I]->val[1] = Shadow[I]->val[1];
+      Res[I]->val[2] = Shadow[I]->val[2];
+    }
+  }
 
+  bool CheckInternal(ScalarVT Operand, MCASyncShadow *Shadow) {
+
+    double Mean = (Shadow->val[0] + Shadow->val[1] + Shadow->val[2]) / 3.0;
+
+    double Variance = 0;
+    for (int I = 0; I < 3; I++)
+      Variance += pow(Shadow->val[0] - Mean, 2.0);
+    Variance /= 3.0;
+
+    double SignificantDigit = -std::log10(utils::abs(sqrt(Variance) / Mean));
+    return SignificantDigit <= 7;
+  }
+
+  void CheckFail(FPType Operand, MCASyncShadow **Shadow) {
     std::cout << "\033[1;31m";
-    std::cout
-        << "[MCASync] Floating-point comparison results depend on precision"
-        << std::endl;
-    std::cout << "\tValue a: " << std::setprecision(20) << a << " b: " << b
-              << std::endl;
-    std::cout << "Shadow a:\n";
-    for (int I = 0; I < VectorSize; I++) {
-      std::cout << "\t" << *sa[I] << "\n";
-    }
-    std::cout << "Shadow b:\n";
-    for (int I = 0; I < VectorSize; I++) {
-      std::cout << "\t" << *sb[I] << "\n";
-    }
+    std::cout << "[MCASync] Low precision shadow result :"
+              << std::setprecision(20) << std::endl;
+
+    std::cout << "\tNative Value: ";
+    // We shall not acess Operand[I] if we're not working on vectors
+    if constexpr (VectorSize > 1)
+      for (int I = 0; I < VectorSize; I++)
+        std::cout << Operand[I] << std::endl;
+    else
+      std::cout << Operand << std::endl;
+
+    std::cout << "\tShadow Value: \n\t  " << *Shadow[0] << std::endl;
+    // std::cout << "SignificantDigit : " << SignificantDigit << std::endl;
     utils::DumpStacktrace();
     std::cout << "\033[0m";
-    if (RuntimeFlags::ExitOnError)
-      exit(1);
   }
+
+  /*   virtual void FCmpCheckFail(FPType a, ShadowTy **sa, FPType b, ShadowTy
+    **sb) {
+
+      std::cout << "\033[1;31m";
+      std::cout
+          << "[MCASync] Floating-point comparison results depend on precision"
+          << std::endl;
+      std::cout << "\tValue a: " << std::setprecision(20) << a << " b: " << b
+                << std::endl;
+      std::cout << "Shadow a:\n";
+      for (int I = 0; I < VectorSize; I++) {
+        std::cout << "\t" << *sa[I] << "\n";
+      }
+      std::cout << "Shadow b:\n";
+      for (int I = 0; I < VectorSize; I++) {
+        std::cout << "\t" << *sb[I] << "\n";
+      }
+      utils::DumpStacktrace();
+      std::cout << "\033[0m";
+      if (RuntimeFlags::ExitOnError)
+        exit(1);
+    } */
 };
+
 } // namespace mcasync
-#endif
+} // namespace interflop

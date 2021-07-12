@@ -1,4 +1,8 @@
 #pragma once
+#include "Shadow.hpp"
+#include <iostream>
+#include <unordered_map>
+
 
 enum FCmpOpcode {
   OrderedFCmp,
@@ -14,28 +18,69 @@ enum FCmpOpcode {
   FCmp_ult
 };
 
-// Define the shadow types
-#include "backends/DoublePrec.hpp"
-#include "backends/MCASync.hpp"
+namespace interflop {
 
-// using RuntimeInfo = mcasync::MSASyncRuntimeInfo;
-using RuntimeInfo = doubleprec::DoublePrecRuntimeInfo;
+class RuntimeStats {
+public:
+  enum WarningType { Check, FCmpCheck };
 
-// We need to know the used runtime at compile time so hot functions may be
-// inlined
-// We may also use #ifdef for every available runtime
-template <typename FPType> using Runtime = RuntimeInfo::Runtime<FPType>;
+  void RegisterWarning(WarningType Type) { Warnings[Type]++; }
 
-using shadow128_t = RuntimeInfo::shadow128_t;
-using shadow256_t = RuntimeInfo::shadow256_t;
+  void print(std::string const &BackendName) {
+    std::cout << "Interflop instrumentation using " << BackendName
+              << " Backend :\n";
+    std::cout << "Check Warning(s) : " << Warnings[Check] << std::endl;
+    std::cout << "FCmpCheck Warning(s) : " << Warnings[FCmpCheck] << std::endl;
+  }
 
-#include "Shadow.hpp"
+private:
+  std::unordered_map<WarningType, unsigned long> Warnings;
+};
 
-// Actually define the runtime
-#ifdef BACKEND_DEFINITION
-#define RUNTIME_DEFINITION
+// Needed to be able to build an array of backend
+class InterflopBackendBase {
+public:
+  virtual const char* getName() const { return "Interflop"; }
 
-#include "backends/DoublePrec.hpp"
+  /* virtual ~InterflopBackendBase() = 0; */
+};
 
-#undef RUNTIME_DEFINITION
-#endif
+template <typename FPType>
+class InterflopBackend : public InterflopBackendBase {
+public:
+  using ScalarVT = typename FPTypeInfo<FPType>::ScalarType;
+  using ShadowType = typename FPTypeInfo<FPType>::ShadowType;
+  static constexpr size_t VectorSize = FPTypeInfo<FPType>::VectorSize;
+
+  InterflopBackend(RuntimeStats *Stats) : Stats(Stats) {}
+
+  virtual ~InterflopBackend() = default;
+
+  // Binary operator overload
+  virtual FPType Add(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
+                     ShadowType **res) = 0;
+
+  virtual FPType Sub(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
+                     ShadowType **res) = 0;
+  virtual FPType Mul(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
+                     ShadowType **res) = 0;
+
+  virtual FPType Div(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
+                     ShadowType **res) = 0;
+
+  virtual FPType Neg(FPType a, ShadowType **sa, ShadowType **res) = 0;
+
+  virtual bool CheckFCmp(const FCmpOpcode Opcode, FPType a, ShadowType **sa,
+                         FPType b, ShadowType **sb) = 0;
+
+  virtual void DownCast(FPType a, ShadowType **sa, OpaqueShadow128 **res) = 0;
+  virtual void UpCast(FPType a, ShadowType **sa, OpaqueShadow256 **res) = 0;
+
+  virtual void MakeShadow(FPType a, ShadowType **res) = 0;
+
+  virtual bool Check(FPType a, ShadowType **sa) = 0;
+
+protected:
+  RuntimeStats *Stats;
+};
+} // namespace interflop

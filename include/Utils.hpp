@@ -1,13 +1,14 @@
 #pragma once
 
 #include <cmath>
-#include <random>
+#include <iostream>
 #include <limits>
+#include <random>
 
 namespace std {
 
-// std::ostream does not natively support __float128  
-std::ostream& operator<<(std::ostream &os, __float128 x) {
+// std::ostream does not natively support __float128
+inline std::ostream &operator<<(std::ostream &os, __float128 x) {
   return os << static_cast<double>(x);
 }
 } // namespace std
@@ -24,9 +25,20 @@ void __nsan_dump_stacktrace();
 
 namespace utils {
 
+enum FPType {
+  kFloat,
+  kV2Float,
+  kV4Float,
+  kV8Float,
+  kV16Double,
+  kDouble,
+  kV2Double,
+  kV4Double,
+  kV8Double,
+  kNumFPType
+};
 
-
-void DumpStacktrace() {
+inline void DumpStacktrace() {
   std::cout << "Interflop stacktrace : \n";
   __nsan_dump_stacktrace();
 }
@@ -34,25 +46,20 @@ void DumpStacktrace() {
 // std::abs and std::isnan do not natively support __float128
 template <typename T> T abs(T x) { return (x < 0) ? -x : x; }
 template <typename T> bool isnan(T x) { return std::isnan(x); }
-template <> bool isnan(__float128 x) {
+
+// We need to mark explicit specialization as inline or define them into a .cpp
+// file
+template <> inline bool isnan(__float128 x) {
   return std::isnan(static_cast<double>(x));
 }
 
-template<typename T>
-T rand()
-{
+template <typename T> T rand() {
   static std::default_random_engine generator(time(NULL));
-  std::uniform_int_distribution<T> distribution(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+  std::uniform_int_distribution<T> distribution(std::numeric_limits<T>::min(),
+                                                std::numeric_limits<T>::max());
   return distribution(generator);
 }
 
-[[noreturn]] void unreachable(const char* str)
-{
-  if (str)
-    std::cout << str << std::endl;
-  std::cout << "Interflop unreachable called !\n";
-  DumpStacktrace();
-  exit(1);
-}
+[[noreturn]] void unreachable(const char *str);
 
 } // namespace utils
