@@ -8,7 +8,7 @@
 #include "Flags.hpp"
 #include "Shadow.hpp"
 #include "Utils.hpp"
-
+namespace interflop {
 namespace doubleprec {
 
 struct DoublePrecShadow128 {
@@ -24,65 +24,80 @@ struct DoublePrecShadow256 {
 template <typename ShadowTy> struct DoublePrecShadowTy {
   using Type =
       typename std::conditional<std::is_same<ShadowTy, OpaqueShadow128>::value,
-                                MCASyncShadow128, MCASyncShadow256>::type;
+                                DoublePrecShadow128, DoublePrecShadow256>::type;
 };
 
 // Double precision runtime using c++ templates
 // Scalar and vectors are treated in the same methods
-template <typename FPType> class DoublePrecRuntime : InterflopBackendBase {
+template <typename FPType>
+class DoublePrecRuntime : public InterflopBackend<FPType> {
 public:
-  using ScalarVT = typename FPTypeInfo<FPType>::scalar_type;
-  using ShadowType = typename FPTypeInfo<FPType>::type;
+  using ScalarVT = typename FPTypeInfo<FPType>::ScalarType;
+  using ShadowType = typename FPTypeInfo<FPType>::ShadowType;
   using ShadowPtr = ShadowType **;
   using DoublePrecShadow = typename DoublePrecShadowTy<ShadowType>::Type;
   static constexpr size_t VectorSize = FPTypeInfo<FPType>::VectorSize;
+
+  DoublePrecRuntime(RuntimeStats *Stats) : InterflopBackend<FPType>(Stats) {}
+  virtual ~DoublePrecRuntime() = default;
 
   // Binary operator overload
   virtual FPType Add(FPType LeftOperand, ShadowPtr LeftShadowOperand,
                      FPType RightOperand, ShadowPtr const RightShadowOperand,
                      ShadowPtr Res) {
 
-    DoublePrecShadow **LeftShadow = reinterpret_cast<DoublePrecShadow **>(sa);
-    DoublePrecShadow **RightShadow = reinterpret_cast<DoublePrecShadow **>(sb);
-    DoublePrecShaodw **ResShadow = reinterprect_cast<DoublePrecShadow **>(Res);
+    DoublePrecShadow **LeftShadow =
+        reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
+    DoublePrecShadow **RightShadow =
+        reinterpret_cast<DoublePrecShadow **>(RightShadowOperand);
+    DoublePrecShadow **ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++)
       ResShadow[I]->val = LeftShadow[I]->val + RightShadow[I]->val;
-    return a + b;
+    return LeftOperand + RightOperand;
   }
 
-  virtual FPType Sub(FPType a, ShadowPtr sa, FPType b, ShadowPtr sb,
-                     ShadowPtr res) {
-    DoublePrecShadow **LeftShadow = reinterpret_cast<DoublePrecShadow **>(sa);
-    DoublePrecShadow **RightShadow = reinterpret_cast<DoublePrecShadow **>(sb);
-    DoublePrecShaodw **ResShadow = reinterprect_cast<DoublePrecShadow **>(Res);
+  virtual FPType Sub(FPType LeftOperand, ShadowPtr LeftShadowOperand,
+                     FPType RightOperand, ShadowPtr const RightShadowOperand,
+                     ShadowPtr Res) {
+    DoublePrecShadow **LeftShadow =
+        reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
+    DoublePrecShadow **RightShadow =
+        reinterpret_cast<DoublePrecShadow **>(RightShadowOperand);
+    DoublePrecShadow **ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++)
       ResShadow[I]->val = LeftShadow[I]->val - RightShadow[I]->val;
-    return a - b;
+    return LeftOperand - RightOperand;
   }
 
-  virtual FPType Mul(FPType a, ShadowPtr sa, FPType b, ShadowPtr sb,
-                     ShadowPtr res) {
-    DoublePrecShadow **LeftShadow = reinterpret_cast<DoublePrecShadow **>(sa);
-    DoublePrecShadow **RightShadow = reinterpret_cast<DoublePrecShadow **>(sb);
-    DoublePrecShaodw **ResShadow = reinterprect_cast<DoublePrecShadow **>(Res);
+  virtual FPType Mul(FPType LeftOperand, ShadowPtr LeftShadowOperand,
+                     FPType RightOperand, ShadowPtr const RightShadowOperand,
+                     ShadowPtr Res) {
+    DoublePrecShadow **LeftShadow =
+        reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
+    DoublePrecShadow **RightShadow =
+        reinterpret_cast<DoublePrecShadow **>(RightShadowOperand);
+    DoublePrecShadow **ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++)
       ResShadow[I]->val = LeftShadow[I]->val * RightShadow[I]->val;
-    return a * b;
+    return LeftOperand * RightOperand;
   }
 
-  virtual FPType Div(FPType a, ShadowPtr sa, FPType b, ShadowPtr sb,
-                     ShadowPtr res) {
+  virtual FPType Div(FPType LeftOperand, ShadowPtr LeftShadowOperand,
+                     FPType RightOperand, ShadowPtr const RightShadowOperand,
+                     ShadowPtr Res) {
 
-    DoublePrecShadow **LeftShadow = reinterpret_cast<DoublePrecShadow **>(sa);
-    DoublePrecShadow **RightShadow = reinterpret_cast<DoublePrecShadow **>(sb);
-    DoublePrecShadow **ResShadow = reinterprect_cast<DoublePrecShadow **>(Res);
+    DoublePrecShadow **LeftShadow =
+        reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
+    DoublePrecShadow **RightShadow =
+        reinterpret_cast<DoublePrecShadow **>(RightShadowOperand);
+    DoublePrecShadow **ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++)
       ResShadow[I]->val = LeftShadow[I]->val / RightShadow[I]->val;
-    return a / b;
+    return LeftOperand / RightOperand;
   }
 
   /*  virtual bool FCmp(FCmpOpcode Opcode, FPType a, ShadowPtr sa, FPType b,
@@ -128,9 +143,10 @@ public:
 
   virtual void DownCast(FPType Operand, ShadowType **ShadowOperand,
                         OpaqueShadow128 **Res) {
-    DoublePrecShadow **Shadow = reinterpret_cast<DoublePrecShadow **>(sa);
+    DoublePrecShadow **Shadow =
+        reinterpret_cast<DoublePrecShadow **>(ShadowOperand);
     DoublePrecShadow128 **ResShadow =
-        reinterprect_cast<DoublePrecShadow128 **>(Res);
+        reinterpret_cast<DoublePrecShadow128 **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
       ResShadow[I]->val = Shadow[I]->val;
@@ -139,9 +155,10 @@ public:
 
   virtual void UpCast(FPType Operand, ShadowType **ShadowOperand,
                       OpaqueShadow256 **Res) {
-    DoublePrecShadow **Shadow = reinterpret_cast<DoublePrecShadow **>(sa);
+    DoublePrecShadow **Shadow =
+        reinterpret_cast<DoublePrecShadow **>(ShadowOperand);
     DoublePrecShadow256 **ResShadow =
-        reinterprect_cast<DoublePrecShadow256 **>(Res);
+        reinterpret_cast<DoublePrecShadow256 **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
       ResShadow[I]->val = Shadow[I]->val;
@@ -149,8 +166,9 @@ public:
   }
 
   virtual FPType Neg(FPType Operand, ShadowPtr ShadowOperand, ShadowPtr Res) {
-    DoublePrecShadow **Shadow = reinterpret_cast<DoublePrecShadow **>(sa);
-    DoublePrecShadow **ResShadow = reinterprect_cast<DoublePrecShadow **>(Res);
+    DoublePrecShadow **Shadow =
+        reinterpret_cast<DoublePrecShadow **>(ShadowOperand);
+    DoublePrecShadow **ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
       ResShadow[I]->val = -Shadow[I]->val;
@@ -159,7 +177,7 @@ public:
   }
 
   virtual void MakeShadow(FPType Operand, ShadowPtr Res) {
-    DoublePrecShadow **ResShadow = reinterprect_cast<DoublePrecShadow **>(Res);
+    DoublePrecShadow **ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
       // We shall only use Operand[I] when working on vectors
@@ -170,9 +188,10 @@ public:
     }
   }
 
-  virtual bool Check(FPType Operand, ShadowTy **ShadowOperand) {
+  virtual bool Check(FPType Operand, ShadowType **ShadowOperand) {
 
-    MCASyncShadow **Shadow = reinterpret_cast<MCASyncShadow **>(ShadowOperand);
+    DoublePrecShadow **Shadow =
+        reinterpret_cast<DoublePrecShadow **>(ShadowOperand);
 
     bool Res = 0;
     // We unvectorize the check
@@ -184,10 +203,13 @@ public:
     } else
       Res = CheckInternal(Operand, Shadow[0]);
 
-    if (Res && not RuntimeFlags ::DisableWarning)
-      CheckFail(Operand, Shadow);
-    if (Res && RuntimeFlags ::ExitOnError)
-      exit(1);
+    if (Res) {
+      InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::Check);
+      if (not RuntimeFlags::DisableWarning)
+        CheckFail(Operand, Shadow);
+      if (RuntimeFlags::ExitOnError)
+        exit(1);
+    }
     return Res;
   }
 
@@ -213,10 +235,10 @@ private:
 
   bool CheckInternal(ScalarVT Operand, DoublePrecShadow *Shadow) {
 
-    double AbsoluteError = utils::abs(Operand - Shadow->val);
-    double RelativeError = AbsoluteError / Shadow->val;
+    double AbsoluteErrror = utils::abs(Operand - Shadow->val);
+    double RelativeError = utils::abs((AbsoluteErrror / Shadow->val) * 100);
 
-    return RelativeError >= 0.001;
+    return RelativeError >= 0.0001;
   }
 
   void CheckFail(FPType Operand, DoublePrecShadow **Shadow) {
@@ -232,10 +254,10 @@ private:
     else
       std::cout << Operand << std::endl;
 
-    std::cout << "\tShadow Value: \n\t  " << *Shadow[0] << std::endl;
-    // std::cout << "SignificantDigit : " << SignificantDigit << std::endl;
+    std::cout << "\tShadow Value: \n\t  " << Shadow[0]->val << std::endl;
     utils::DumpStacktrace();
     std::cout << "\033[0m";
   }
 };
 } // namespace doubleprec
+} // namespace interflop

@@ -3,6 +3,7 @@
 #include "Shadow.hpp"
 #include "Utils.hpp"
 #include "backends/MCASync.hpp"
+#include "backends/DoublePrec.hpp"
 #include <iostream>
 #include <memory>
 
@@ -16,19 +17,19 @@ public:
     RuntimeStats* StatsPtr = Stats.get();
 
     Backends[utils::kFloat] =
-        std::make_unique<mcasync::MCASyncRuntime<float>>(StatsPtr);
+        std::make_unique<doubleprec::DoublePrecRuntime<float>>(StatsPtr);
     Backends[utils::kV2Float] =
-        std::make_unique<mcasync::MCASyncRuntime<v2float>>(StatsPtr);
+        std::make_unique<doubleprec::DoublePrecRuntime<v2float>>(StatsPtr);
     Backends[utils::kV4Float] =
-        std::make_unique<mcasync::MCASyncRuntime<v4float>>(StatsPtr);
+        std::make_unique<doubleprec::DoublePrecRuntime<v4float>>(StatsPtr);
     Backends[utils::kDouble] =
-        std::make_unique<mcasync::MCASyncRuntime<double>>(StatsPtr);
+        std::make_unique<doubleprec::DoublePrecRuntime<double>>(StatsPtr);
     Backends[utils::kV2Double] =
-        std::make_unique<mcasync::MCASyncRuntime<v2double>>(StatsPtr);
+        std::make_unique<doubleprec::DoublePrecRuntime<v2double>>(StatsPtr);
     Backends[utils::kV4Double] =
-        std::make_unique<mcasync::MCASyncRuntime<v4double>>(StatsPtr);
+        std::make_unique<doubleprec::DoublePrecRuntime<v4double>>(StatsPtr);
     Backends[utils::kV8Double] =
-        std::make_unique<mcasync::MCASyncRuntime<v8double>>(StatsPtr);
+        std::make_unique<doubleprec::DoublePrecRuntime<v8double>>(StatsPtr);
   }
 
   ~InterflopContext() { Stats->print(Backends[utils::kFloat]->getName()); }
