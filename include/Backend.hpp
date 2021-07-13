@@ -3,7 +3,6 @@
 #include <iostream>
 #include <unordered_map>
 
-
 enum FCmpOpcode {
   OrderedFCmp,
   FCmp_oeq,
@@ -40,7 +39,7 @@ private:
 // Needed to be able to build an array of backend
 class InterflopBackendBase {
 public:
-  virtual const char* getName() const { return "Interflop"; }
+  virtual const char *getName() const { return "Interflop"; }
 
   /* virtual ~InterflopBackendBase() = 0; */
 };
@@ -70,8 +69,9 @@ public:
 
   virtual FPType Neg(FPType a, ShadowType **sa, ShadowType **res) = 0;
 
-  virtual bool CheckFCmp(const FCmpOpcode Opcode, FPType a, ShadowType **sa,
-                         FPType b, ShadowType **sb) = 0;
+  virtual bool CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
+                         ShadowType** LeftShadowOperand, FPType RightOperand,
+                         ShadowType** RightShadowOperand, bool Value) = 0;
 
   virtual void DownCast(FPType a, ShadowType **sa, OpaqueShadow128 **res) = 0;
   virtual void UpCast(FPType a, ShadowType **sa, OpaqueShadow256 **res) = 0;

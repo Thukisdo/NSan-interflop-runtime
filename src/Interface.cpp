@@ -258,42 +258,50 @@ extern "C" int __interflop_double_check(double a, OpaqueShadow256 *sa) {
 
 extern "C" int __interflop_float_fcmp_oeq(float a, OpaqueShadow128 *sa, float b,
                                           OpaqueShadow128 *sb) {
-  return Context.getBackendFor<float>().CheckFCmp(FCmp_oeq, a, &sa, b, &sb);
+  return Context.getBackendFor<float>().CheckFCmp(FCmp_oeq, a, &sa, b, &sb,
+                                                  a == b);
 }
 
 extern "C" int __interflop_float_fcmp_one(float a, OpaqueShadow128 *sa, float b,
                                           OpaqueShadow128 *sb) {
-  return Context.getBackendFor<float>().CheckFCmp(FCmp_one, a, &sa, b, &sb);
+  return Context.getBackendFor<float>().CheckFCmp(FCmp_one, a, &sa, b, &sb,
+                                                  a != b);
 }
 
 extern "C" int __interflop_float_fcmp_ogt(float a, OpaqueShadow128 *sa, float b,
                                           OpaqueShadow128 *sb) {
-  return Context.getBackendFor<float>().CheckFCmp(FCmp_ogt, a, &sa, b, &sb);
+  return Context.getBackendFor<float>().CheckFCmp(FCmp_ogt, a, &sa, b, &sb,
+                                                  a > b);
 }
 
 extern "C" int __interflop_float_fcmp_olt(float a, OpaqueShadow128 *sa, float b,
                                           OpaqueShadow128 *sb) {
-  return Context.getBackendFor<float>().CheckFCmp(FCmp_olt, a, &sa, b, &sb);
+  return Context.getBackendFor<float>().CheckFCmp(FCmp_olt, a, &sa, b, &sb,
+                                                  a < b);
 }
 
 extern "C" int __interflop_double_fcmp_oeq(double a, OpaqueShadow256 *sa,
                                            double b, OpaqueShadow256 *sb) {
-  return Context.getBackendFor<double>().CheckFCmp(FCmp_oeq, a, &sa, b, &sb);
+  return Context.getBackendFor<double>().CheckFCmp(FCmp_oeq, a, &sa, b, &sb,
+                                                   a == b);
 }
 
 extern "C" int __interflop_double_fcmp_one(double a, OpaqueShadow256 *sa,
                                            double b, OpaqueShadow256 *sb) {
-  return Context.getBackendFor<double>().CheckFCmp(FCmp_one, a, &sa, b, &sb);
+  return Context.getBackendFor<double>().CheckFCmp(FCmp_one, a, &sa, b, &sb,
+                                                   a != b);
 }
 
 extern "C" int __interflop_double_fcmp_ogt(double a, OpaqueShadow256 *sa,
                                            double b, OpaqueShadow256 *sb) {
-  return Context.getBackendFor<double>().CheckFCmp(FCmp_ogt, a, &sa, b, &sb);
+  return Context.getBackendFor<double>().CheckFCmp(FCmp_ogt, a, &sa, b, &sb,
+                                                   a > b);
 }
 
 extern "C" int __interflop_double_fcmp_olt(double a, OpaqueShadow256 *sa,
                                            double b, OpaqueShadow256 *sb) {
-  return Context.getBackendFor<double>().CheckFCmp(FCmp_olt, a, &sa, b, &sb);
+  return Context.getBackendFor<double>().CheckFCmp(FCmp_olt, a, &sa, b, &sb,
+                                                   a < b);
 }
 
 // =============================
@@ -302,40 +310,48 @@ extern "C" int __interflop_double_fcmp_olt(double a, OpaqueShadow256 *sa,
 
 extern "C" int __interflop_float_fcmp_ueq(float a, OpaqueShadow128 *sa, float b,
                                           OpaqueShadow128 *sb) {
-  return Context.getBackendFor<float>().CheckFCmp(FCmp_ueq, a, &sa, b, &sb);
+  return Context.getBackendFor<float>().CheckFCmp(FCmp_ueq, a, &sa, b, &sb,
+                                                  a == b);
 }
 
 extern "C" int __interflop_float_fcmp_une(float a, OpaqueShadow128 *sa, float b,
                                           OpaqueShadow128 *sb) {
-  return Context.getBackendFor<float>().CheckFCmp(FCmp_une, a, &sa, b, &sb);
+  return Context.getBackendFor<float>().CheckFCmp(FCmp_une, a, &sa, b, &sb,
+                                                  a != b);
 }
 
 extern "C" int __interflop_float_fcmp_ugt(float a, OpaqueShadow128 *sa, float b,
                                           OpaqueShadow128 *sb) {
-  return Context.getBackendFor<float>().CheckFCmp(FCmp_ugt, a, &sa, b, &sb);
+  return Context.getBackendFor<float>().CheckFCmp(FCmp_ugt, a, &sa, b, &sb,
+                                                  a > b);
 }
 
 extern "C" int __interflop_float_fcmp_ult(float a, OpaqueShadow128 *sa, float b,
                                           OpaqueShadow128 *sb) {
-  return Context.getBackendFor<float>().CheckFCmp(FCmp_ult, a, &sa, b, &sb);
+  return Context.getBackendFor<float>().CheckFCmp(FCmp_ult, a, &sa, b, &sb,
+                                                  a < b);
 }
 
 extern "C" int __interflop_double_fcmp_ueq(double a, OpaqueShadow256 *sa,
                                            double b, OpaqueShadow256 *sb) {
-  return Context.getBackendFor<double>().CheckFCmp(FCmp_ueq, a, &sa, b, &sb);
+  return Context.getBackendFor<double>().CheckFCmp(FCmp_ueq, a, &sa, b, &sb,
+                                                   a == b);
 }
 
 extern "C" int __interflop_double_fcmp_une(double a, OpaqueShadow256 *sa,
                                            double b, OpaqueShadow256 *sb) {
-  return Context.getBackendFor<double>().CheckFCmp(FCmp_une, a, &sa, b, &sb);
+  return Context.getBackendFor<double>().CheckFCmp(FCmp_une, a, &sa, b, &sb,
+                                                   a != b);
 }
 
 extern "C" int __interflop_double_fcmp_ugt(double a, OpaqueShadow256 *sa,
                                            double b, OpaqueShadow256 *sb) {
-  return Context.getBackendFor<double>().CheckFCmp(FCmp_ugt, a, &sa, b, &sb);
+  return Context.getBackendFor<double>().CheckFCmp(FCmp_ugt, a, &sa, b, &sb,
+                                                   a > b);
 }
 
 extern "C" int __interflop_double_fcmp_ult(double a, OpaqueShadow256 *sa,
                                            double b, OpaqueShadow256 *sb) {
-  return Context.getBackendFor<double>().CheckFCmp(FCmp_ult, a, &sa, b, &sb);
+  return Context.getBackendFor<double>().CheckFCmp(FCmp_ult, a, &sa, b, &sb,
+                                                   a < b);
 }

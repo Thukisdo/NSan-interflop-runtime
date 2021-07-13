@@ -177,8 +177,9 @@ public:
       return res;
     } */
 
-  virtual bool CheckFCmp(const FCmpOpcode Opcode, FPType a, ShadowTy **sa,
-                         FPType b, ShadowTy **sb) {
+  virtual bool CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
+                         ShadowTy** LeftShadowOperand, FPType RightOperand,
+                         ShadowTy** RightShadowOperand, bool Value) {
 
     return true;
     /* bool res = FCmp<Opcode>(sa, sb);

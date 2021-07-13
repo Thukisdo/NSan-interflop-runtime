@@ -100,45 +100,53 @@ public:
     return LeftOperand / RightOperand;
   }
 
-  /*  virtual bool FCmp(FCmpOpcode Opcode, FPType a, ShadowPtr sa, FPType b,
-                     ShadowPtr sb) {
+  bool FCmp(FCmpOpcode Opcode, DoublePrecShadow **LeftShadow,
+            DoublePrecShadow **RightShadow) {
 
-     bool res = true;
+    bool res = true;
 
-     for (int I = 0; res && (I < VectorSize); I++) {
+    for (int I = 0; res && (I < VectorSize); I++) {
 
-       auto LeftOp = sa[I]->val;
-       auto RightOp = sb[I]->val;
+      auto LeftOp = LeftShadow[I]->val;
+      auto RightOp = RightShadow[I]->val;
 
-       // Handle unordered comparisons
-       if (Opcode < UnorderedFCmp &&
-           (utils::isnan(LeftOp) || utils::isnan(RightOp)))
-         return true;
+      // Handle unordered comparisons
+      if (Opcode < UnorderedFCmp &&
+          (utils::isnan(LeftOp) || utils::isnan(RightOp)))
+        res &= true;
 
-       // Handle (ordered) comparisons
-       if constexpr (Opcode == FCmp_oeq || Opcode == FCmp_ueq)
-         res = res && (LeftOp == RightOp);
-       else if constexpr (Opcode == FCmp_one || Opcode == FCmp_one)
-         res = res && (LeftOp != RightOp);
-       else if constexpr (Opcode == FCmp_ogt || Opcode == FCmp_ogt)
-         res = res && (LeftOp > RightOp);
-       else if constexpr (Opcode == FCmp_olt || Opcode == FCmp_olt)
-         res = res && (LeftOp < RightOp);
-       else
-         utils::unreachable("Unknown Predicate");
-     }
-     return res;
-   } */
+      // Handle (ordered) comparisons
+      if (Opcode == FCmp_oeq || Opcode == FCmp_ueq)
+        res = res && (LeftOp == RightOp);
+      else if (Opcode == FCmp_one || Opcode == FCmp_one)
+        res = res && (LeftOp != RightOp);
+      else if (Opcode == FCmp_ogt || Opcode == FCmp_ogt)
+        res = res && (LeftOp > RightOp);
+      else if (Opcode == FCmp_olt || Opcode == FCmp_olt)
+        res = res && (LeftOp < RightOp);
+      else
+        utils::unreachable("Unknown Predicate");
+    }
+    return res;
+  }
 
-  virtual bool CheckFCmp(FCmpOpcode Opcode, FPType a, ShadowPtr sa, FPType b,
-                         ShadowPtr sb) {
-    return true;
-    /* bool res = FCmp<Opcode>(sa, sb);
-    // We expect both comparison to be equal, else we print an error
-    if (not RuntimeFlags::DisableWarning && c != res)
-      FCmpCheckFail(a, sa, b, sb);
+  virtual bool CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
+                         ShadowPtr LeftShadowOperand, FPType RightOperand,
+                         ShadowPtr RightShadowOperand, bool Value) {
+
+    auto LeftShadow = reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
+    auto RightShadow =
+        reinterpret_cast<DoublePrecShadow **>(RightShadowOperand);
+
+    bool res = FCmp(Opcode, LeftShadow, RightShadow);
+    // We expect both comparison to be equal, else we emit a warning
+    if (Value != res) {
+      InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::FCmpCheck);
+      if (not RuntimeFlags::DisableWarning)
+        FCmpCheckFail(LeftOperand, LeftShadow, RightOperand, RightShadow);
+    }
     // We return the shadow comparison result to be able to correctly branch
-    return res; */
+    return res;
   }
 
   virtual void DownCast(FPType Operand, ShadowType **ShadowOperand,
@@ -214,31 +222,44 @@ public:
   }
 
 private:
-  /*   virtual void FCmpCheckFail(FPType a, ShadowPtr sa, FPType b,
-    ShadowPtr sb) { std::cout << "floating-point comparison results depend
-    on precision"
-                << std::endl;
-      std::cout << "\tValue a: " << a << " b: " << b << std::endl;
-      std::cout << "Shadow a: { ";
-      for (int I = 0; I < VectorSize; I++) {
-        std::cout << sa[I]->val << " ";
-      }
-      std::cout << "} \nShadow b: { " << std::endl;
-      for (int I = 0; I < VectorSize; I++) {
-        std::cout << sb[I]->val << " ";
-      }
-      std::cout << "}" << std::endl;
-      utils::DumpStacktrace();
-      if (RuntimeFlags::ExitOnError)
-        exit(1);
-    } */
+  void FCmpCheckFail(FPType a, DoublePrecShadow **sa, FPType b,
+                     DoublePrecShadow **sb) {
+    std::cout << "Shadow results depends on precision" << std::endl;
+    std::cout << "\tValue  a: { ";
+    if constexpr (VectorSize > 1) {
+      for (int I = 0; I < VectorSize; I++)
+        std::cout << a[I] << " ";
+      std::cout << "} b: ";
+      for (int I = 0; I < VectorSize; I++)
+        std::cout << b[I] << " ";
+    } else
+      std::cout << a << " } b: {" << b;
+    std::cout << "}\n\tShadow a: { ";
+    for (int I = 0; I < VectorSize; I++) {
+      std::cout << sa[I]->val << " ";
+    }
+    std::cout << "} b: { ";
+    for (int I = 0; I < VectorSize; I++) {
+      std::cout << sb[I]->val << " ";
+    }
+    std::cout << "}" << std::endl;
+    utils::DumpStacktrace();
+    if (RuntimeFlags::ExitOnError)
+      exit(1);
+  }
 
   bool CheckInternal(ScalarVT Operand, DoublePrecShadow *Shadow) {
 
-    double AbsoluteErrror = utils::abs(Operand - Shadow->val);
-    double RelativeError = utils::abs((AbsoluteErrror / Shadow->val) * 100);
+    // Same as nsan default max threshold
+    // FIXME : Should be defined as flag
+    static constexpr double MaxAbsoluteError = 1.0 / std::pow(2, 32);
+    static constexpr double MaxRelativeError = 1.0 / std::pow(2, 19);
 
-    return RelativeError >= 0.0001;
+    double AbsoluteError = utils::abs(Operand - Shadow->val);
+    double RelativeError = utils::abs((AbsoluteError / Shadow->val) * 100);
+
+    return AbsoluteError >= MaxAbsoluteError ||
+           RelativeError >= MaxRelativeError;
   }
 
   void CheckFail(FPType Operand, DoublePrecShadow **Shadow) {
