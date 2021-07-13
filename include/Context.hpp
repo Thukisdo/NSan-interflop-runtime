@@ -25,7 +25,7 @@ public:
   RuntimeStats const *getStats() const;
 
   template <typename T> InterflopBackend<T> &getBackendFor() {
-    // Lazily create backends as needed
+    // Lazily create backends
     if (Backends[FPTypeInfo<T>::Type] == nullptr)
         Backends[FPTypeInfo<T>::Type] = makeBackend<T>();
     return *reinterpret_cast<InterflopBackend<T> *>(

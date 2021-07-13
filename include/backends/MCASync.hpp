@@ -170,11 +170,11 @@ public:
       // Handle (ordered) comparisons
       if (Opcode == FCmp_oeq || Opcode == FCmp_ueq)
         Res = Res && (MeanLeftOp == MeanRightOp);
-      else if (Opcode == FCmp_one || Opcode == FCmp_one)
+      else if (Opcode == FCmp_one || Opcode == FCmp_une)
         Res = Res && (MeanLeftOp != MeanRightOp);
-      else if (Opcode == FCmp_ogt || Opcode == FCmp_ogt)
+      else if (Opcode == FCmp_ogt || Opcode == FCmp_ugt)
         Res = Res && (MeanLeftOp > MeanRightOp);
-      else if (Opcode == FCmp_olt || Opcode == FCmp_olt)
+      else if (Opcode == FCmp_olt || Opcode == FCmp_ult)
         Res = Res && (MeanLeftOp < MeanRightOp);
       else
         utils::unreachable("Unknown Predicate");

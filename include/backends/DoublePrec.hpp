@@ -118,11 +118,11 @@ public:
       // Handle (ordered) comparisons
       if (Opcode == FCmp_oeq || Opcode == FCmp_ueq)
         Res = Res && (LeftOp == RightOp);
-      else if (Opcode == FCmp_one || Opcode == FCmp_one)
+      else if (Opcode == FCmp_one || Opcode == FCmp_une)
         Res = Res && (LeftOp != RightOp);
-      else if (Opcode == FCmp_ogt || Opcode == FCmp_ogt)
+      else if (Opcode == FCmp_ogt || Opcode == FCmp_ugt)
         Res = Res && (LeftOp > RightOp);
-      else if (Opcode == FCmp_olt || Opcode == FCmp_olt)
+      else if (Opcode == FCmp_olt || Opcode == FCmp_ult)
         Res = Res && (LeftOp < RightOp);
       else
         utils::unreachable("Unknown Predicate");
@@ -241,7 +241,7 @@ private:
       std::cout << sb[I]->val << " ";
     }
     std::cout << "}" << std::endl;
-    
+
     utils::DumpStacktrace();
     if (RuntimeFlags::ExitOnError)
       exit(1);
