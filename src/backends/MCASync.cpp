@@ -57,7 +57,7 @@ struct Float128 {
   Float128(double f)
       : f128(f) {} // Strangely, the compiler doesn't know wether to implicitly
                    // convert a double to f128 or i128, hence we need a double
-                   // ctor to avoit the cast altogether
+                   // ctor to avoid the cast altogether
 
   union {
     __float128 f128;
@@ -88,3 +88,9 @@ double StochasticRound(double x) {
 
 } // namespace mcasync
 } // namespace interflop
+
+/* 
+distribution du stocastic / graph
+500 sample + variance
+tchebychev sampling 
+*/

@@ -22,6 +22,9 @@ struct MCASyncShadow128 {
 
   // helper methods for printing / acessing one of the shadow float
   friend std::ostream &operator<<(std::ostream &os, MCASyncShadow128 const &s);
+
+  // Here the inline is needed to prevent multiple definition on top of the
+  // obvious performance reason
   inline float operator[](size_t const index) const {
     assert(index < 3);
     return val[index];
@@ -34,6 +37,9 @@ struct MCASyncShadow256 {
 
   // helper methods for printing / acessing one of the shadow double
   friend std::ostream &operator<<(std::ostream &os, MCASyncShadow256 const &s);
+
+  // Here the inline is needed to prevent multiple definition on top of the
+  // obvious performance reason
   inline double operator[](size_t const index) const {
     assert(index < 3);
     return val[index];
@@ -42,8 +48,8 @@ struct MCASyncShadow256 {
 
 // Adapted from a Julia rounding code
 // https://github.com/milankl/StochasticRounding.jl/blob/main/src/float32sr.jl
-
 float StochasticRound(float x);
+
 // Adapted from a Julia rounding code
 // https://github.com/milankl/StochasticRounding.jl/blob/main/src/float32sr.jl
 double StochasticRound(double x);
@@ -67,15 +73,15 @@ public:
   MCASyncRuntime(RuntimeStats *Stats) : InterflopBackend<FPType>(Stats) {}
   virtual ~MCASyncRuntime() = default;
 
+  virtual const char *getName() const final { return "MCASync"; }
+
   // Binary operator overload
   virtual FPType Add(FPType LeftOp, ShadowTy **LeftOpaqueShadow, FPType RightOp,
-                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) override {
+                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) final {
 
-    MCASyncShadow **LeftShadow =
-        reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
-    MCASyncShadow **RightShadow =
-        reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
-    MCASyncShadow **ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
+    auto LeftShadow = reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
+    auto RightShadow = reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
+    auto ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
       ResShadow[I]->val[0] =
@@ -89,13 +95,11 @@ public:
   }
 
   virtual FPType Sub(FPType LeftOp, ShadowTy **LeftOpaqueShadow, FPType RightOp,
-                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) {
+                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) final {
 
-    MCASyncShadow **LeftShadow =
-        reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
-    MCASyncShadow **RightShadow =
-        reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
-    MCASyncShadow **ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
+    auto LeftShadow = reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
+    auto RightShadow = reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
+    auto ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
       ResShadow[I]->val[0] =
@@ -109,13 +113,11 @@ public:
   }
 
   virtual FPType Mul(FPType LeftOp, ShadowTy **LeftOpaqueShadow, FPType RightOp,
-                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) {
+                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) final {
 
-    MCASyncShadow **LeftShadow =
-        reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
-    MCASyncShadow **RightShadow =
-        reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
-    MCASyncShadow **ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
+    auto LeftShadow = reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
+    auto RightShadow = reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
+    auto ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
       ResShadow[I]->val[0] =
@@ -129,13 +131,11 @@ public:
   }
 
   virtual FPType Div(FPType LeftOp, ShadowTy **LeftOpaqueShadow, FPType RightOp,
-                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) {
+                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) final {
 
-    MCASyncShadow **LeftShadow =
-        reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
-    MCASyncShadow **RightShadow =
-        reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
-    MCASyncShadow **ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
+    auto LeftShadow = reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
+    auto RightShadow = reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
+    auto ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
       ResShadow[I]->val[0] =
@@ -148,68 +148,78 @@ public:
     return LeftOp / RightOp;
   }
 
-  /*   template <FCmpOpcode Opcode> bool FCmp(ShadowTy **sa, ShadowTy **sb) {
+  bool FCmp(FCmpOpcode Opcode, MCASyncShadow **LeftShadow,
+            MCASyncShadow **RightShadow) {
 
-      bool res = true;
+    bool Res = true;
 
-      for (int I = 0; res && (I < VectorSize); I++) {
+    for (int I = 0; Res && (I < VectorSize); I++) {
 
-        double LeftOp = (sa[I]->val[0] + sa[I]->val[1] + sa[I]->val[2]) / 3;
-        double RightOp = (sb[I]->val[0] + sb[I]->val[1] + sb[I]->val[2]) / 3;
+      double MeanLeftOp = (LeftShadow[I]->val[0] + LeftShadow[I]->val[1] +
+                           LeftShadow[I]->val[2]) /
+                          3;
+      double MeanRightOp = (RightShadow[I]->val[0] + RightShadow[I]->val[1] +
+                            RightShadow[I]->val[2]) /
+                           3;
 
-        // Handle unordered comparisons
-        if (Opcode < UnorderedFCmp &&
-            (utils::isnan(LeftOp) || utils::isnan(RightOp)))
-          return true;
+      // Handle unordered comparisons
+      if (Opcode < UnorderedFCmp &&
+          (utils::isnan(MeanLeftOp) || utils::isnan(MeanRightOp)))
+        continue;
 
-        // Handle (ordered) comparisons
-        if constexpr (Opcode == FCmp_oeq || Opcode == FCmp_ueq)
-          res = res && (LeftOp == RightOp);
-        else if constexpr (Opcode == FCmp_one || Opcode == FCmp_one)
-          res = res && (LeftOp != RightOp);
-        else if constexpr (Opcode == FCmp_ogt || Opcode == FCmp_ogt)
-          res = res && (LeftOp > RightOp);
-        else if constexpr (Opcode == FCmp_olt || Opcode == FCmp_olt)
-          res = res && (LeftOp < RightOp);
-        else
-          utils::unreachable("Unknown Predicate");
-      }
-      return res;
-    } */
+      // Handle (ordered) comparisons
+      if (Opcode == FCmp_oeq || Opcode == FCmp_ueq)
+        Res = Res && (MeanLeftOp == MeanRightOp);
+      else if (Opcode == FCmp_one || Opcode == FCmp_one)
+        Res = Res && (MeanLeftOp != MeanRightOp);
+      else if (Opcode == FCmp_ogt || Opcode == FCmp_ogt)
+        Res = Res && (MeanLeftOp > MeanRightOp);
+      else if (Opcode == FCmp_olt || Opcode == FCmp_olt)
+        Res = Res && (MeanLeftOp < MeanRightOp);
+      else
+        utils::unreachable("Unknown Predicate");
+    }
+    return Res;
+  }
 
   virtual bool CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
-                         ShadowTy** LeftShadowOperand, FPType RightOperand,
-                         ShadowTy** RightShadowOperand, bool Value) {
+                         ShadowTy **LeftShadowOperand, FPType RightOperand,
+                         ShadowTy **RightShadowOperand, bool Value) final {
 
-    return true;
-    /* bool res = FCmp<Opcode>(sa, sb);
+    auto LeftShadow = reinterpret_cast<MCASyncShadow **>(LeftShadowOperand);
+    auto RightShadow = reinterpret_cast<MCASyncShadow **>(RightShadowOperand);
+    bool Res = FCmp(Opcode, LeftShadow, RightShadow);
     // We expect both comparison to be equal, else we print an error
-    if (not RuntimeFlags::DisableWarning && c != res)
-      FCmpCheckFail(a, sa, b, sb);
+    if (Value != Res) {
+      InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::FCmpCheck);
+      if (not RuntimeFlags::DisableWarning)
+        FCmpCheckFail(LeftOperand, LeftShadow, RightOperand, RightShadow);
+    }
     // We return the shadow comparison result to be able to correctly branch
-    return res; */
+    return Res;
   }
 
   virtual void DownCast(FPType Operand, ShadowTy **OperandShadow,
-                        OpaqueShadow128 **Res) {
-    MCASyncShadow **Shadow = reinterpret_cast<MCASyncShadow **>(OperandShadow);
-    MCASyncShadow128 **Destination = reinterpret_cast<MCASyncShadow128 **>(Res);
+                        OpaqueShadow128 **Res) final {
+    auto Shadow = reinterpret_cast<MCASyncShadow **>(OperandShadow);
+    auto Destination = reinterpret_cast<MCASyncShadow128 **>(Res);
 
     Cast(Operand, Shadow, Destination);
   }
 
   virtual void UpCast(FPType Operand, ShadowTy **OperandShadow,
-                      OpaqueShadow256 **Res) {
-    MCASyncShadow **Shadow = reinterpret_cast<MCASyncShadow **>(OperandShadow);
-    MCASyncShadow256 **Destination = reinterpret_cast<MCASyncShadow256 **>(Res);
+                      OpaqueShadow256 **Res) final {
+    auto Shadow = reinterpret_cast<MCASyncShadow **>(OperandShadow);
+    auto Destination = reinterpret_cast<MCASyncShadow256 **>(Res);
 
     Cast(Operand, Shadow, Destination);
   }
 
-  virtual FPType Neg(FPType Operand, ShadowTy **OperandShadow, ShadowTy **Res) {
+  virtual FPType Neg(FPType Operand, ShadowTy **OperandShadow,
+                     ShadowTy **Res) final {
 
-    MCASyncShadow **Shadow = reinterpret_cast<MCASyncShadow **>(OperandShadow);
-    MCASyncShadow **ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
+    auto Shadow = reinterpret_cast<MCASyncShadow **>(OperandShadow);
+    auto ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
       ResShadow[I]->val[0] = -Shadow[I]->val[0];
@@ -219,9 +229,9 @@ public:
     return -Operand;
   }
 
-  virtual void MakeShadow(FPType Source, ShadowTy **Res) {
+  virtual void MakeShadow(FPType Source, ShadowTy **Res) final {
 
-    MCASyncShadow **ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
+    auto ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
       // We need a constexpr if to prevent the compiler from evaluating a[I] if
@@ -238,9 +248,9 @@ public:
     }
   }
 
-  virtual bool Check(FPType Operand, ShadowTy **ShadowOperand) {
+  virtual bool Check(FPType Operand, ShadowTy **ShadowOperand) final {
 
-    MCASyncShadow **Shadow = reinterpret_cast<MCASyncShadow **>(ShadowOperand);
+    auto Shadow = reinterpret_cast<MCASyncShadow **>(ShadowOperand);
 
     bool Res = 0;
     // We unvectorize the check
@@ -277,7 +287,7 @@ private:
 
     double Variance = 0;
     for (int I = 0; I < 3; I++)
-      Variance += pow(Shadow->val[0] - Mean, 2.0);
+      Variance += pow(Shadow->val[I] - Mean, 2.0);
     Variance /= 3.0;
 
     double SignificantDigit = -std::log10(utils::abs(sqrt(Variance) / Mean));
@@ -303,28 +313,34 @@ private:
     std::cout << "\033[0m";
   }
 
-  /*   virtual void FCmpCheckFail(FPType a, ShadowTy **sa, FPType b, ShadowTy
-    **sb) {
+  virtual void FCmpCheckFail(FPType a, ShadowTy **sa, FPType b, ShadowTy **sb) {
 
-      std::cout << "\033[1;31m";
-      std::cout
-          << "[MCASync] Floating-point comparison results depend on precision"
-          << std::endl;
-      std::cout << "\tValue a: " << std::setprecision(20) << a << " b: " << b
-                << std::endl;
-      std::cout << "Shadow a:\n";
-      for (int I = 0; I < VectorSize; I++) {
-        std::cout << "\t" << *sa[I] << "\n";
-      }
-      std::cout << "Shadow b:\n";
-      for (int I = 0; I < VectorSize; I++) {
-        std::cout << "\t" << *sb[I] << "\n";
-      }
-      utils::DumpStacktrace();
-      std::cout << "\033[0m";
-      if (RuntimeFlags::ExitOnError)
-        exit(1);
-    } */
+    std::cout << "\033[1;31m";
+    std::cout
+        << "[MCASync] Floating-point comparison results depend on precision"
+        << std::endl;
+    std::cout << "\tValue  a: { ";
+    if constexpr (VectorSize > 1) {
+      for (int I = 0; I < VectorSize; I++)
+        std::cout << a[I] << " ";
+      std::cout << "} b: ";
+      for (int I = 0; I < VectorSize; I++)
+        std::cout << b[I] << " ";
+    } else
+      std::cout << a << " } b: {" << b;
+    std::cout << "Shadow a:\n";
+    for (int I = 0; I < VectorSize; I++) {
+      std::cout << "\t" << *sa[I] << "\n";
+    }
+    std::cout << "Shadow b:\n";
+    for (int I = 0; I < VectorSize; I++) {
+      std::cout << "\t" << *sb[I] << "\n";
+    }
+    utils::DumpStacktrace();
+    std::cout << "\033[0m";
+    if (RuntimeFlags::ExitOnError)
+      exit(1);
+  }
 };
 
 } // namespace mcasync

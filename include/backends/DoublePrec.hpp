@@ -41,16 +41,19 @@ public:
   DoublePrecRuntime(RuntimeStats *Stats) : InterflopBackend<FPType>(Stats) {}
   virtual ~DoublePrecRuntime() = default;
 
+  virtual const char *getName() const final {
+    return "Double precision (adapted from NSan)";
+  }
+
   // Binary operator overload
   virtual FPType Add(FPType LeftOperand, ShadowPtr LeftShadowOperand,
                      FPType RightOperand, ShadowPtr const RightShadowOperand,
-                     ShadowPtr Res) {
+                     ShadowPtr Res) final {
 
-    DoublePrecShadow **LeftShadow =
-        reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
-    DoublePrecShadow **RightShadow =
+    auto LeftShadow = reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
+    auto RightShadow =
         reinterpret_cast<DoublePrecShadow **>(RightShadowOperand);
-    DoublePrecShadow **ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
+    auto ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++)
       ResShadow[I]->val = LeftShadow[I]->val + RightShadow[I]->val;
@@ -59,12 +62,11 @@ public:
 
   virtual FPType Sub(FPType LeftOperand, ShadowPtr LeftShadowOperand,
                      FPType RightOperand, ShadowPtr const RightShadowOperand,
-                     ShadowPtr Res) {
-    DoublePrecShadow **LeftShadow =
-        reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
-    DoublePrecShadow **RightShadow =
+                     ShadowPtr Res) final {
+    auto LeftShadow = reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
+    auto RightShadow =
         reinterpret_cast<DoublePrecShadow **>(RightShadowOperand);
-    DoublePrecShadow **ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
+    auto ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++)
       ResShadow[I]->val = LeftShadow[I]->val - RightShadow[I]->val;
@@ -73,12 +75,11 @@ public:
 
   virtual FPType Mul(FPType LeftOperand, ShadowPtr LeftShadowOperand,
                      FPType RightOperand, ShadowPtr const RightShadowOperand,
-                     ShadowPtr Res) {
-    DoublePrecShadow **LeftShadow =
-        reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
-    DoublePrecShadow **RightShadow =
+                     ShadowPtr Res) final {
+    auto LeftShadow = reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
+    auto RightShadow =
         reinterpret_cast<DoublePrecShadow **>(RightShadowOperand);
-    DoublePrecShadow **ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
+    auto ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++)
       ResShadow[I]->val = LeftShadow[I]->val * RightShadow[I]->val;
@@ -87,13 +88,12 @@ public:
 
   virtual FPType Div(FPType LeftOperand, ShadowPtr LeftShadowOperand,
                      FPType RightOperand, ShadowPtr const RightShadowOperand,
-                     ShadowPtr Res) {
+                     ShadowPtr Res) final {
 
-    DoublePrecShadow **LeftShadow =
-        reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
-    DoublePrecShadow **RightShadow =
+    auto LeftShadow = reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
+    auto RightShadow =
         reinterpret_cast<DoublePrecShadow **>(RightShadowOperand);
-    DoublePrecShadow **ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
+    auto ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++)
       ResShadow[I]->val = LeftShadow[I]->val / RightShadow[I]->val;
@@ -103,9 +103,9 @@ public:
   bool FCmp(FCmpOpcode Opcode, DoublePrecShadow **LeftShadow,
             DoublePrecShadow **RightShadow) {
 
-    bool res = true;
+    bool Res = true;
 
-    for (int I = 0; res && (I < VectorSize); I++) {
+    for (int I = 0; Res && (I < VectorSize); I++) {
 
       auto LeftOp = LeftShadow[I]->val;
       auto RightOp = RightShadow[I]->val;
@@ -113,48 +113,46 @@ public:
       // Handle unordered comparisons
       if (Opcode < UnorderedFCmp &&
           (utils::isnan(LeftOp) || utils::isnan(RightOp)))
-        res &= true;
+        continue; // NaN <=> NaN is always true, no need to go further
 
       // Handle (ordered) comparisons
       if (Opcode == FCmp_oeq || Opcode == FCmp_ueq)
-        res = res && (LeftOp == RightOp);
+        Res = Res && (LeftOp == RightOp);
       else if (Opcode == FCmp_one || Opcode == FCmp_one)
-        res = res && (LeftOp != RightOp);
+        Res = Res && (LeftOp != RightOp);
       else if (Opcode == FCmp_ogt || Opcode == FCmp_ogt)
-        res = res && (LeftOp > RightOp);
+        Res = Res && (LeftOp > RightOp);
       else if (Opcode == FCmp_olt || Opcode == FCmp_olt)
-        res = res && (LeftOp < RightOp);
+        Res = Res && (LeftOp < RightOp);
       else
         utils::unreachable("Unknown Predicate");
     }
-    return res;
+    return Res;
   }
 
   virtual bool CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
                          ShadowPtr LeftShadowOperand, FPType RightOperand,
-                         ShadowPtr RightShadowOperand, bool Value) {
+                         ShadowPtr RightShadowOperand, bool Value) final {
 
     auto LeftShadow = reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
     auto RightShadow =
         reinterpret_cast<DoublePrecShadow **>(RightShadowOperand);
 
-    bool res = FCmp(Opcode, LeftShadow, RightShadow);
+    bool Res = FCmp(Opcode, LeftShadow, RightShadow);
     // We expect both comparison to be equal, else we emit a warning
-    if (Value != res) {
+    if (Value != Res) {
       InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::FCmpCheck);
       if (not RuntimeFlags::DisableWarning)
         FCmpCheckFail(LeftOperand, LeftShadow, RightOperand, RightShadow);
     }
     // We return the shadow comparison result to be able to correctly branch
-    return res;
+    return Res;
   }
 
   virtual void DownCast(FPType Operand, ShadowType **ShadowOperand,
-                        OpaqueShadow128 **Res) {
-    DoublePrecShadow **Shadow =
-        reinterpret_cast<DoublePrecShadow **>(ShadowOperand);
-    DoublePrecShadow128 **ResShadow =
-        reinterpret_cast<DoublePrecShadow128 **>(Res);
+                        OpaqueShadow128 **Res) final {
+    auto Shadow = reinterpret_cast<DoublePrecShadow **>(ShadowOperand);
+    auto ResShadow = reinterpret_cast<DoublePrecShadow128 **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
       ResShadow[I]->val = Shadow[I]->val;
@@ -162,21 +160,19 @@ public:
   }
 
   virtual void UpCast(FPType Operand, ShadowType **ShadowOperand,
-                      OpaqueShadow256 **Res) {
-    DoublePrecShadow **Shadow =
-        reinterpret_cast<DoublePrecShadow **>(ShadowOperand);
-    DoublePrecShadow256 **ResShadow =
-        reinterpret_cast<DoublePrecShadow256 **>(Res);
+                      OpaqueShadow256 **Res) final {
+    auto Shadow = reinterpret_cast<DoublePrecShadow **>(ShadowOperand);
+    auto ResShadow = reinterpret_cast<DoublePrecShadow256 **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
       ResShadow[I]->val = Shadow[I]->val;
     }
   }
 
-  virtual FPType Neg(FPType Operand, ShadowPtr ShadowOperand, ShadowPtr Res) {
-    DoublePrecShadow **Shadow =
-        reinterpret_cast<DoublePrecShadow **>(ShadowOperand);
-    DoublePrecShadow **ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
+  virtual FPType Neg(FPType Operand, ShadowPtr ShadowOperand,
+                     ShadowPtr Res) final {
+    auto Shadow = reinterpret_cast<DoublePrecShadow **>(ShadowOperand);
+    auto ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
       ResShadow[I]->val = -Shadow[I]->val;
@@ -184,8 +180,8 @@ public:
     return -Operand;
   }
 
-  virtual void MakeShadow(FPType Operand, ShadowPtr Res) {
-    DoublePrecShadow **ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
+  virtual void MakeShadow(FPType Operand, ShadowPtr Res) final {
+    auto ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
       // We shall only use Operand[I] when working on vectors
@@ -196,7 +192,7 @@ public:
     }
   }
 
-  virtual bool Check(FPType Operand, ShadowType **ShadowOperand) {
+  virtual bool Check(FPType Operand, ShadowType **ShadowOperand) final {
 
     DoublePrecShadow **Shadow =
         reinterpret_cast<DoublePrecShadow **>(ShadowOperand);
@@ -225,6 +221,7 @@ private:
   void FCmpCheckFail(FPType a, DoublePrecShadow **sa, FPType b,
                      DoublePrecShadow **sb) {
     std::cout << "Shadow results depends on precision" << std::endl;
+
     std::cout << "\tValue  a: { ";
     if constexpr (VectorSize > 1) {
       for (int I = 0; I < VectorSize; I++)
@@ -234,6 +231,7 @@ private:
         std::cout << b[I] << " ";
     } else
       std::cout << a << " } b: {" << b;
+
     std::cout << "}\n\tShadow a: { ";
     for (int I = 0; I < VectorSize; I++) {
       std::cout << sa[I]->val << " ";
@@ -243,6 +241,7 @@ private:
       std::cout << sb[I]->val << " ";
     }
     std::cout << "}" << std::endl;
+    
     utils::DumpStacktrace();
     if (RuntimeFlags::ExitOnError)
       exit(1);

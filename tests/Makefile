@@ -8,4 +8,4 @@ INSTRUMENTATION_FLAGS = -fno-omit-frame-pointer -fsanitize=numerical -mllvm --ns
 LINK_LIBRARY = -L../release -linterflop
 
 large_array_fill: large_array_fill.cpp
-	$(CXX) $(CXXFLAGS) $(INSTRUMENTATION_FLAGS) nsan_tests/cadna_ex7.cc $(LINK_LIBRARY)
+	$(CXX) $(CXXFLAGS) $(INSTRUMENTATION_FLAGS) nsan_tests/verificarlo_case4.cc $(LINK_LIBRARY)
