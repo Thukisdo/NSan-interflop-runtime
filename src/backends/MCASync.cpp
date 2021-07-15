@@ -56,7 +56,7 @@ struct Float128 {
   Float128(__uint128_t i) : i128(i) {}
   Float128(double f)
       : f128(f) {} // Strangely, the compiler doesn't know wether to implicitly
-                   // convert a double to f128 or i128, hence we need a double
+                   // cast a double to f128 or i128, hence we need a double
                    // ctor to avoid the cast altogether
 
   union {
@@ -68,7 +68,7 @@ struct Float128 {
 double StochasticRound(double x) {
   static Float128 oneF128 = 1.0;
   static Float128 eps_F64 =
-      std::nextafter((double)std::nextafter(0.0f, 1.0f), 0.0);
+      std::nextafter((double)std::nextafter(0.0, 1.0), 0.0);
 
   uint128_t RandomBits = utils::rand<uint64_t>();
   RandomBits |= ((uint128_t)utils::rand<uint64_t>()) << 64;
@@ -82,6 +82,8 @@ double StochasticRound(double x) {
   Float128 ExtendedFP(x);
   // arithmetic bitshift and |1 to create a random integer that is in (-u/2,u/2)
   // always set last random bit to 1 to avoid the creating of -u/2
+
+  // FIXME : incorrect shift ?
   ExtendedFP.i128 = (ExtendedFP.i128 + (RandomBits >> 68)) | 1;
   return ExtendedFP.f128;
 }
