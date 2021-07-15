@@ -90,9 +90,3 @@ double StochasticRound(double x) {
 
 } // namespace mcasync
 } // namespace interflop
-
-/* 
-distribution du stocastic / graph
-500 sample + variance
-tchebychev sampling 
-*/
