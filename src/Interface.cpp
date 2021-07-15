@@ -256,6 +256,29 @@ extern "C" int __interflop_double_check(double a, OpaqueShadow256 *sa) {
 // Oredered Comparisons operator
 // =============================
 
+namespace {
+// Comparing two vector yields a vector of bool
+// We need to reduce it to a singleton before continuing
+template <typename ScalarT, typename VectorT>
+bool ReducePredicate(VectorT Vec) {
+  // The vector of bool is the same size as the base vector
+  // So we can get the number of element by dividing both size
+  constexpr size_t Size = sizeof(VectorT) / sizeof(ScalarT);
+  bool Res = true;
+
+  // We reduce the vector to a singleton
+  for (int I = 0; Res && (I < Size); I++)
+    Res = Res && Vec[I];
+  return Res;
+}
+
+// We may be able to replace this boilerplate code with function aliasing using
+// some templates ?
+
+} // namespace
+
+// Float Ordered Comparisons
+
 extern "C" int __interflop_float_fcmp_oeq(float a, OpaqueShadow128 *sa, float b,
                                           OpaqueShadow128 *sb) {
   return Context.getBackendFor<float>().CheckFCmp(FCmp_oeq, a, &sa, b, &sb,
@@ -280,6 +303,53 @@ extern "C" int __interflop_float_fcmp_olt(float a, OpaqueShadow128 *sa, float b,
                                                   a < b);
 }
 
+extern "C" int __interflop_float_v2_fcmp_oeq(v2float a, v2OpaqueShadow128 sa,
+                                             v2float b, v2OpaqueShadow128 sb) {
+  return Context.getBackendFor<v2float>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v2float>(a == b));
+}
+
+extern "C" int __interflop_float_v2_fcmp_one(v2float a, v2OpaqueShadow128 sa,
+                                             v2float b, v2OpaqueShadow128 sb) {
+  return Context.getBackendFor<v2float>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v2float>(a != b));
+}
+
+extern "C" int __interflop_float_v2_fcmp_ogt(v2float a, v2OpaqueShadow128 sa,
+                                             v2float b, v2OpaqueShadow128 sb) {
+  return Context.getBackendFor<v2float>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v2float>(a > b));
+}
+
+extern "C" int __interflop_float_v2_fcmp_olt(v2float a, v2OpaqueShadow128 sa,
+                                             v2float b, v2OpaqueShadow128 sb) {
+  return Context.getBackendFor<v2float>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v2float>(a < b));
+}
+
+extern "C" int __interflop_float_v4_fcmp_oeq(v4float a, v4OpaqueShadow128 sa,
+                                             v4float b, v4OpaqueShadow128 sb) {
+  return Context.getBackendFor<v4float>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v4float>(a == b));
+}
+
+extern "C" int __interflop_float_v4_fcmp_one(v4float a, v4OpaqueShadow128 sa,
+                                             v4float b, v4OpaqueShadow128 sb) {
+  return Context.getBackendFor<v4float>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v4float>(a != b));
+}
+
+extern "C" int __interflop_float_v4_fcmp_ogt(v4float a, v4OpaqueShadow128 sa,
+                                             v4float b, v4OpaqueShadow128 sb) {
+  return Context.getBackendFor<v4float>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v4float>(a > b));
+}
+extern "C" int __interflop_float_v4_fcmp_olt(v4float a, v4OpaqueShadow128 sa,
+                                             v4float b, v4OpaqueShadow128 sb) {
+  return Context.getBackendFor<v4float>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v4float>(a < b));
+}
+
 extern "C" int __interflop_double_fcmp_oeq(double a, OpaqueShadow256 *sa,
                                            double b, OpaqueShadow256 *sb) {
   return Context.getBackendFor<double>().CheckFCmp(FCmp_oeq, a, &sa, b, &sb,
@@ -302,6 +372,61 @@ extern "C" int __interflop_double_fcmp_olt(double a, OpaqueShadow256 *sa,
                                            double b, OpaqueShadow256 *sb) {
   return Context.getBackendFor<double>().CheckFCmp(FCmp_olt, a, &sa, b, &sb,
                                                    a < b);
+}
+
+extern "C" int __interflop_double_v2_fcmp_oeq(v2double a, v2OpaqueShadow256 sa,
+                                              v2double b,
+                                              v2OpaqueShadow256 sb) {
+  return Context.getBackendFor<v2double>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v2double>(a == b));
+}
+
+extern "C" int __interflop_double_v2_fcmp_one(v2double a, v2OpaqueShadow256 sa,
+                                              v2double b,
+                                              v2OpaqueShadow256 sb) {
+  return Context.getBackendFor<v2double>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v2double>(a != b));
+}
+
+extern "C" int __interflop_double_v2_fcmp_ogt(v2double a, v2OpaqueShadow256 sa,
+                                              v2double b,
+                                              v2OpaqueShadow256 sb) {
+  return Context.getBackendFor<v2double>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v2double>(a > b));
+}
+
+extern "C" int __interflop_double_v2_fcmp_olt(v2double a, v2OpaqueShadow256 sa,
+                                              v2double b,
+                                              v2OpaqueShadow256 sb) {
+  return Context.getBackendFor<v2double>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v2double>(a < b));
+}
+
+extern "C" int __interflop_double_v4_fcmp_oeq(v4double a, v4OpaqueShadow256 sa,
+                                              v4double b,
+                                              v4OpaqueShadow256 sb) {
+  return Context.getBackendFor<v4double>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v4double>(a == b));
+}
+
+extern "C" int __interflop_double_v4_fcmp_one(v4double a, v4OpaqueShadow256 sa,
+                                              v4double b,
+                                              v4OpaqueShadow256 sb) {
+  return Context.getBackendFor<v4double>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v4double>(a != b));
+}
+
+extern "C" int __interflop_double_v4_fcmp_ogt(v4double a, v4OpaqueShadow256 sa,
+                                              v4double b,
+                                              v4OpaqueShadow256 sb) {
+  return Context.getBackendFor<v4double>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v4double>(a > b));
+}
+extern "C" int __interflop_double_v4_fcmp_olt(v4double a, v4OpaqueShadow256 sa,
+                                              v4double b,
+                                              v4OpaqueShadow256 sb) {
+  return Context.getBackendFor<v4double>().CheckFCmp(
+      FCmp_oeq, a, sa, b, sb, ReducePredicate<v4double>(a < b));
 }
 
 // =============================

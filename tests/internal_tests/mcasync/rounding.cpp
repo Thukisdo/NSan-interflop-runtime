@@ -8,7 +8,7 @@
 namespace interflop {
 namespace mcasync {
 
-double StochasticRound(double x);
+//float StochasticRound(float x);
 double StochasticRound(double x);
 
 } // namespace mcasync
@@ -38,11 +38,11 @@ double expanded(double x) {
 
 int main(int argc, char **argv) {
   srand(time(nullptr));
-  static constexpr double kStep = 0.001f;
+  static constexpr double kStep = 0.001;
   std::ofstream output("out.dat");
   output << std::setprecision(16);
 
-  for (double i = 0.0f; i < 1.0f; i += kStep) {
+  for (double i = 0; i <= 1.0; i += kStep) {
     for (size_t j = 0; j < 20; j++) {
       double res = expanded(i);
       output << j << " " << i << " " << res << "\n";
