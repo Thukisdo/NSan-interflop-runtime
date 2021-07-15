@@ -303,6 +303,12 @@ extern "C" int __interflop_float_fcmp_olt(float a, OpaqueShadow128 *sa, float b,
                                                   a < b);
 }
 
+//
+//
+// Float Vector Comparisons
+//
+//
+
 extern "C" int __interflop_float_v2_fcmp_oeq(v2float a, v2OpaqueShadow128 sa,
                                              v2float b, v2OpaqueShadow128 sb) {
   return Context.getBackendFor<v2float>().CheckFCmp(
@@ -350,6 +356,12 @@ extern "C" int __interflop_float_v4_fcmp_olt(v4float a, v4OpaqueShadow128 sa,
       FCmp_oeq, a, sa, b, sb, ReducePredicate<v4float>(a < b));
 }
 
+//
+//
+// Double Vector Comparisons
+//
+//
+
 extern "C" int __interflop_double_fcmp_oeq(double a, OpaqueShadow256 *sa,
                                            double b, OpaqueShadow256 *sb) {
   return Context.getBackendFor<double>().CheckFCmp(FCmp_oeq, a, &sa, b, &sb,
@@ -373,6 +385,12 @@ extern "C" int __interflop_double_fcmp_olt(double a, OpaqueShadow256 *sa,
   return Context.getBackendFor<double>().CheckFCmp(FCmp_olt, a, &sa, b, &sb,
                                                    a < b);
 }
+
+//
+//
+// Double Vector Comparisons
+//
+//
 
 extern "C" int __interflop_double_v2_fcmp_oeq(v2double a, v2OpaqueShadow256 sa,
                                               v2double b,

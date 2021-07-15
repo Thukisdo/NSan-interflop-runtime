@@ -75,7 +75,7 @@ double StochasticRound(double x) {
   // subnormals are round with float-arithmetic for uniform stoch perturbation
   // (Magic)
   if (utils::abs(x) < std::numeric_limits<double>::min()) {
-    Float128 Res(oneF128.i128 | (RandomBits >> 12));
+    Float128 Res(oneF128.i128 | (RandomBits >> 16));
     Res.f128 -= 1.5;
     return x + eps_F64.f128 * Res.f128;
   }
@@ -83,7 +83,6 @@ double StochasticRound(double x) {
   // arithmetic bitshift and |1 to create a random integer that is in (-u/2,u/2)
   // always set last random bit to 1 to avoid the creating of -u/2
 
-  // FIXME : incorrect shift ?
   ExtendedFP.i128 = (ExtendedFP.i128 + (RandomBits >> 68)) | 1;
   return ExtendedFP.f128;
 }

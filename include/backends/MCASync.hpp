@@ -49,9 +49,6 @@ struct MCASyncShadow256 {
 // Adapted from a Julia rounding code
 // https://github.com/milankl/StochasticRounding.jl/blob/main/src/float32sr.jl
 float StochasticRound(float x);
-
-// Adapted from a Julia rounding code
-// https://github.com/milankl/StochasticRounding.jl/blob/main/src/float32sr.jl
 double StochasticRound(double x);
 
 template <typename ShadowTy> struct MCASyncShadowTy {
@@ -65,6 +62,7 @@ template <typename ShadowTy> struct MCASyncShadowTy {
 template <typename FPType>
 class MCASyncRuntime : public InterflopBackend<FPType> {
 public:
+  // We need aliasing to ease the backend implementation
   using ScalarVT = typename FPTypeInfo<FPType>::ScalarType;
   using ShadowTy = typename FPTypeInfo<FPType>::ShadowType;
   using MCASyncShadow = typename MCASyncShadowTy<ShadowTy>::Type;
@@ -73,6 +71,7 @@ public:
   MCASyncRuntime(RuntimeStats *Stats) : InterflopBackend<FPType>(Stats) {}
   virtual ~MCASyncRuntime() = default;
 
+  // FIXME : Should be moved elsewhere
   virtual const char *getName() const final { return "MCASync"; }
 
   // Binary operator overload
