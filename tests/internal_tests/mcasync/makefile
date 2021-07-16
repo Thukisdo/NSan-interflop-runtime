@@ -1,9 +1,9 @@
 
 CC = clang
 CXX = clang++
-CFLAGS = -O3
-CXXFLAGS = -O3
-LINK_LIBRARY = -L../../../release -linterflop
+CFLAGS = -O3 -I../../../include
+CXXFLAGS = -O3 -I../../../include -std=c++17
+LINK_LIBRARY = -L../../../release -linterflop 
 
 
 run: rounding.o plot.py
@@ -16,4 +16,4 @@ rounding.o: rounding.cpp
 clean : 
 	rm -f out.dat
 	rm -f rounding.o
-	rm out-53.pdf	
+	rm -f out-53.pdf	

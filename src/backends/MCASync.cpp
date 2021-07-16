@@ -28,11 +28,10 @@ struct Float64 {
   };
 };
 
-float StochasticRound(float x) {
-  static Float64 oneF64 = 1.0;
-  static Float64 eps_F32 =
+float StochasticRound(double x) {
+  static const Float64 oneF64 = 1.0;
+  static const Float64 eps_F32 =
       std::nextafter((double)std::nextafter(0.0f, 1.0f), 0.0);
-
   uint64_t RandomBits = utils::rand<uint64_t>();
   // subnormals are rounded with float-arithmetic for uniform stoch perturbation
   // (Magic)
@@ -42,7 +41,7 @@ float StochasticRound(float x) {
     return x + eps_F32.f64 * Res.f64;
   }
 
-  Float64 ExtendedFP(x);
+  Float64 ExtendedFP{x};
   // arithmetic bitshift and |1 to create a random integer that is in (-u/2,u/2)
   // always set last random bit to 1 to avoid the creation of -u/2
   ExtendedFP.i64 += (RandomBits >> 35) | 1;
@@ -65,11 +64,10 @@ struct Float128 {
   };
 };
 
-double StochasticRound(double x) {
+double StochasticRound(__float128 x) {
   static Float128 oneF128 = 1.0;
   static Float128 eps_F64 =
       std::nextafter((double)std::nextafter(0.0, 1.0), 0.0);
-
   uint128_t RandomBits = utils::rand<uint64_t>();
   RandomBits |= ((uint128_t)utils::rand<uint64_t>()) << 64;
   // subnormals are round with float-arithmetic for uniform stoch perturbation
@@ -81,7 +79,7 @@ double StochasticRound(double x) {
   }
   Float128 ExtendedFP(x);
   // arithmetic bitshift and |1 to create a random integer that is in (-u/2,u/2)
-  // always set last random bit to 1 to avoid the creating of -u/2
+  // always set last random bit to 1 to avoid the creation of -u/2
 
   ExtendedFP.i128 = (ExtendedFP.i128 + (RandomBits >> 68)) | 1;
   return ExtendedFP.f128;

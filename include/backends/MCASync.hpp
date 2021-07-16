@@ -14,7 +14,9 @@
 namespace interflop {
 namespace mcasync {
 
-typedef __int128_t unsigned uint128_t;
+namespace {
+typedef __int128 int128_t;
+typedef unsigned __int128 uint128_t;
 
 struct MCASyncShadow128 {
   float val[3];
@@ -46,16 +48,23 @@ struct MCASyncShadow256 {
   }
 };
 
+template <typename ShadowType> struct MCASyncShadowTy {
+  using Type = typename std::conditional<
+      std::is_same<ShadowType, OpaqueShadow128>::value, MCASyncShadow128,
+      MCASyncShadow256>::type;
+};
+
+template <typename ScalarVT> struct MCASyncExtendedVT {
+  using Type = typename std::conditional<std::is_same<ScalarVT, float>::value,
+                                         double, __float128>::type;
+};
+
+} // anonymous namespace
+
 // Adapted from a Julia rounding code
 // https://github.com/milankl/StochasticRounding.jl/blob/main/src/float32sr.jl
-float StochasticRound(float x);
-double StochasticRound(double x);
-
-template <typename ShadowTy> struct MCASyncShadowTy {
-  using Type =
-      typename std::conditional<std::is_same<ShadowTy, OpaqueShadow128>::value,
-                                MCASyncShadow128, MCASyncShadow256>::type;
-};
+float StochasticRound(double x);
+double StochasticRound(__float128 x);
 
 // Double precision runtime using c++ templates
 // Scalar and vectors are treated in the same methods
@@ -64,8 +73,9 @@ class MCASyncRuntime : public InterflopBackend<FPType> {
 public:
   // We need aliasing to ease the backend implementation
   using ScalarVT = typename FPTypeInfo<FPType>::ScalarType;
-  using ShadowTy = typename FPTypeInfo<FPType>::ShadowType;
-  using MCASyncShadow = typename MCASyncShadowTy<ShadowTy>::Type;
+  using ExtendedScalarVT = typename MCASyncExtendedVT<ScalarVT>::Type;
+  using ShadowType = typename FPTypeInfo<FPType>::ShadowType;
+  using MCASyncShadow = typename MCASyncShadowTy<ShadowType>::Type;
   static constexpr size_t VectorSize = FPTypeInfo<FPType>::VectorSize;
 
   MCASyncRuntime(RuntimeStats *Stats) : InterflopBackend<FPType>(Stats) {}
@@ -75,74 +85,82 @@ public:
   virtual const char *getName() const final { return "MCASync"; }
 
   // Binary operator overload
-  virtual FPType Add(FPType LeftOp, ShadowTy **LeftOpaqueShadow, FPType RightOp,
-                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) final {
+  virtual FPType Add(FPType LeftOp, ShadowType **LeftOpaqueShadow,
+                     FPType RightOp, ShadowType **RightOpaqueShadow,
+                     ShadowType **Res) final {
 
     auto LeftShadow = reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
     auto RightShadow = reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
     auto ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
 
+    // Perform every add in extended precision and add a rounding noise
     for (int I = 0; I < VectorSize; I++) {
-      ResShadow[I]->val[0] =
-          StochasticRound(LeftShadow[I]->val[0] + RightShadow[I]->val[0]);
-      ResShadow[I]->val[1] =
-          StochasticRound(LeftShadow[I]->val[1] + RightShadow[I]->val[1]);
-      ResShadow[I]->val[2] =
-          StochasticRound(LeftShadow[I]->val[2] + RightShadow[I]->val[2]);
+      ResShadow[I]->val[0] = StochasticRound(
+          (ExtendedScalarVT)LeftShadow[I]->val[0] + RightShadow[I]->val[0]);
+      ResShadow[I]->val[1] = StochasticRound(
+          (ExtendedScalarVT)LeftShadow[I]->val[1] + RightShadow[I]->val[1]);
+      ResShadow[I]->val[2] = StochasticRound(
+          (ExtendedScalarVT)LeftShadow[I]->val[2] + RightShadow[I]->val[2]);
     }
     return LeftOp + RightOp;
   }
 
-  virtual FPType Sub(FPType LeftOp, ShadowTy **LeftOpaqueShadow, FPType RightOp,
-                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) final {
+  virtual FPType Sub(FPType LeftOp, ShadowType **LeftOpaqueShadow,
+                     FPType RightOp, ShadowType **RightOpaqueShadow,
+                     ShadowType **Res) final {
 
     auto LeftShadow = reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
     auto RightShadow = reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
     auto ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
 
+    // Perform every sub in extended precision and add a rounding noise
     for (int I = 0; I < VectorSize; I++) {
-      ResShadow[I]->val[0] =
-          StochasticRound(LeftShadow[I]->val[0] - RightShadow[I]->val[0]);
-      ResShadow[I]->val[1] =
-          StochasticRound(LeftShadow[I]->val[1] - RightShadow[I]->val[1]);
-      ResShadow[I]->val[2] =
-          StochasticRound(LeftShadow[I]->val[2] - RightShadow[I]->val[2]);
+      ResShadow[I]->val[0] = StochasticRound(
+          (ExtendedScalarVT)LeftShadow[I]->val[0] - RightShadow[I]->val[0]);
+      ResShadow[I]->val[1] = StochasticRound(
+          (ExtendedScalarVT)LeftShadow[I]->val[1] - RightShadow[I]->val[1]);
+      ResShadow[I]->val[2] = StochasticRound(
+          (ExtendedScalarVT)LeftShadow[I]->val[2] - RightShadow[I]->val[2]);
     }
     return LeftOp - RightOp;
   }
 
-  virtual FPType Mul(FPType LeftOp, ShadowTy **LeftOpaqueShadow, FPType RightOp,
-                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) final {
+  virtual FPType Mul(FPType LeftOp, ShadowType **LeftOpaqueShadow,
+                     FPType RightOp, ShadowType **RightOpaqueShadow,
+                     ShadowType **Res) final {
 
     auto LeftShadow = reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
     auto RightShadow = reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
     auto ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
 
+    // Perform every mul in extended precision and add a rounding noise
     for (int I = 0; I < VectorSize; I++) {
-      ResShadow[I]->val[0] =
-          StochasticRound(LeftShadow[I]->val[0] * RightShadow[I]->val[0]);
-      ResShadow[I]->val[1] =
-          StochasticRound(LeftShadow[I]->val[1] * RightShadow[I]->val[1]);
-      ResShadow[I]->val[2] =
-          StochasticRound(LeftShadow[I]->val[2] * RightShadow[I]->val[2]);
+      ResShadow[I]->val[0] = StochasticRound(
+          (ExtendedScalarVT)LeftShadow[I]->val[0] * RightShadow[I]->val[0]);
+      ResShadow[I]->val[1] = StochasticRound(
+          (ExtendedScalarVT)LeftShadow[I]->val[1] * RightShadow[I]->val[1]);
+      ResShadow[I]->val[2] = StochasticRound(
+          (ExtendedScalarVT)LeftShadow[I]->val[2] * RightShadow[I]->val[2]);
     }
     return LeftOp * RightOp;
   }
 
-  virtual FPType Div(FPType LeftOp, ShadowTy **LeftOpaqueShadow, FPType RightOp,
-                     ShadowTy **RightOpaqueShadow, ShadowTy **Res) final {
+  virtual FPType Div(FPType LeftOp, ShadowType **LeftOpaqueShadow,
+                     FPType RightOp, ShadowType **RightOpaqueShadow,
+                     ShadowType **Res) final {
 
     auto LeftShadow = reinterpret_cast<MCASyncShadow **>(LeftOpaqueShadow);
     auto RightShadow = reinterpret_cast<MCASyncShadow **>(RightOpaqueShadow);
     auto ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
 
+    // Perform every div in extended precision and add a rounding noise
     for (int I = 0; I < VectorSize; I++) {
-      ResShadow[I]->val[0] =
-          StochasticRound(LeftShadow[I]->val[0] / RightShadow[I]->val[0]);
-      ResShadow[I]->val[1] =
-          StochasticRound(LeftShadow[I]->val[1] / RightShadow[I]->val[1]);
-      ResShadow[I]->val[2] =
-          StochasticRound(LeftShadow[I]->val[2] / RightShadow[I]->val[2]);
+      ResShadow[I]->val[0] = StochasticRound(
+          (ExtendedScalarVT)LeftShadow[I]->val[0] / RightShadow[I]->val[0]);
+      ResShadow[I]->val[1] = StochasticRound(
+          (ExtendedScalarVT)LeftShadow[I]->val[1] / RightShadow[I]->val[1]);
+      ResShadow[I]->val[2] = StochasticRound(
+          (ExtendedScalarVT)LeftShadow[I]->val[2] / RightShadow[I]->val[2]);
     }
     return LeftOp / RightOp;
   }
@@ -182,8 +200,8 @@ public:
   }
 
   virtual bool CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
-                         ShadowTy **LeftShadowOperand, FPType RightOperand,
-                         ShadowTy **RightShadowOperand, bool Value) final {
+                         ShadowType **LeftShadowOperand, FPType RightOperand,
+                         ShadowType **RightShadowOperand, bool Value) final {
 
     auto LeftShadow = reinterpret_cast<MCASyncShadow **>(LeftShadowOperand);
     auto RightShadow = reinterpret_cast<MCASyncShadow **>(RightShadowOperand);
@@ -198,7 +216,7 @@ public:
     return Res;
   }
 
-  virtual void DownCast(FPType Operand, ShadowTy **OperandShadow,
+  virtual void DownCast(FPType Operand, ShadowType **OperandShadow,
                         OpaqueShadow128 **Res) final {
     auto Shadow = reinterpret_cast<MCASyncShadow **>(OperandShadow);
     auto Destination = reinterpret_cast<MCASyncShadow128 **>(Res);
@@ -206,7 +224,7 @@ public:
     Cast(Operand, Shadow, Destination);
   }
 
-  virtual void UpCast(FPType Operand, ShadowTy **OperandShadow,
+  virtual void UpCast(FPType Operand, ShadowType **OperandShadow,
                       OpaqueShadow256 **Res) final {
     auto Shadow = reinterpret_cast<MCASyncShadow **>(OperandShadow);
     auto Destination = reinterpret_cast<MCASyncShadow256 **>(Res);
@@ -214,8 +232,8 @@ public:
     Cast(Operand, Shadow, Destination);
   }
 
-  virtual FPType Neg(FPType Operand, ShadowTy **OperandShadow,
-                     ShadowTy **Res) final {
+  virtual FPType Neg(FPType Operand, ShadowType **OperandShadow,
+                     ShadowType **Res) final {
 
     auto Shadow = reinterpret_cast<MCASyncShadow **>(OperandShadow);
     auto ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
@@ -228,7 +246,7 @@ public:
     return -Operand;
   }
 
-  virtual void MakeShadow(FPType Source, ShadowTy **Res) final {
+  virtual void MakeShadow(FPType Source, ShadowType **Res) final {
 
     auto ResShadow = reinterpret_cast<MCASyncShadow **>(Res);
 
@@ -247,7 +265,7 @@ public:
     }
   }
 
-  virtual bool Check(FPType Operand, ShadowTy **ShadowOperand) final {
+  virtual bool Check(FPType Operand, ShadowType **ShadowOperand) final {
 
     auto Shadow = reinterpret_cast<MCASyncShadow **>(ShadowOperand);
 
@@ -312,7 +330,8 @@ private:
     std::cout << "\033[0m";
   }
 
-  virtual void FCmpCheckFail(FPType a, ShadowTy **sa, FPType b, ShadowTy **sb) {
+  virtual void FCmpCheckFail(FPType a, ShadowType **sa, FPType b,
+                             ShadowType **sb) {
 
     std::cout << "\033[1;31m";
     std::cout
