@@ -1,4 +1,18 @@
+/**
+ * @file MCASync.hpp
+ * @author Mathys JAM (mathys.jam@gmail.com)
+ * @brief MCA Synchrone backend, using 3 orbitals
+ * @version 0.7.0
+ * @date 2021-07-20
+ * 
+ * 
+ */
+
 #pragma once
+#include "Backend.hpp"
+#include "Flags.hpp"
+#include "OpaqueShadow.hpp"
+#include "Utils.hpp"
 #include <cassert>
 #include <cmath>
 #include <cstring>
@@ -6,14 +20,9 @@
 #include <iostream>
 #include <limits>
 
-#include "Backend.hpp"
-#include "Flags.hpp"
-#include "Shadow.hpp"
-#include "Utils.hpp"
+namespace interflop::mcasync {
 
-namespace interflop {
-namespace mcasync {
-
+// This backend's shadow should not be visible outside this file.
 namespace {
 typedef __int128 int128_t;
 typedef unsigned __int128 uint128_t;
@@ -25,7 +34,7 @@ struct MCASyncShadow128 {
   // helper methods for printing / acessing one of the shadow float
   friend std::ostream &operator<<(std::ostream &os, MCASyncShadow128 const &s);
 
-  // Here the inline is needed to prevent multiple definition on top of the
+  // inline attribute is needed to prevent multiple definition on top of the
   // obvious performance reason
   inline float operator[](size_t const index) const {
     assert(index < 3);
@@ -40,7 +49,7 @@ struct MCASyncShadow256 {
   // helper methods for printing / acessing one of the shadow double
   friend std::ostream &operator<<(std::ostream &os, MCASyncShadow256 const &s);
 
-  // Here the inline is needed to prevent multiple definition on top of the
+  // inline attribute is needed to prevent multiple definition on top of the
   // obvious performance reason
   inline double operator[](size_t const index) const {
     assert(index < 3);
@@ -48,12 +57,14 @@ struct MCASyncShadow256 {
   }
 };
 
+// Helper trait to correctly select the right shadow type
 template <typename ShadowType> struct MCASyncShadowTy {
   using Type = typename std::conditional<
       std::is_same<ShadowType, OpaqueShadow128>::value, MCASyncShadow128,
       MCASyncShadow256>::type;
 };
 
+// Helper trait to correctly select the right extended Floating type
 template <typename ScalarVT> struct MCASyncExtendedVT {
   using Type = typename std::conditional<std::is_same<ScalarVT, float>::value,
                                          double, __float128>::type;
@@ -291,6 +302,7 @@ public:
 private:
   template <typename DestType>
   void Cast(FPType a, MCASyncShadow **Shadow, DestType Res) {
+    // We just copy every value
     for (int I = 0; I < VectorSize; I++) {
       Res[I]->val[0] = Shadow[I]->val[0];
       Res[I]->val[1] = Shadow[I]->val[1];
@@ -308,6 +320,7 @@ private:
     Variance /= 3.0;
 
     double SignificantDigit = -std::log10(utils::abs(sqrt(Variance) / Mean));
+    // Should use a flag that defines required precision
     return SignificantDigit <= 7;
   }
 
@@ -361,5 +374,4 @@ private:
   }
 };
 
-} // namespace mcasync
-} // namespace interflop
+} // namespace interflop::mcasync

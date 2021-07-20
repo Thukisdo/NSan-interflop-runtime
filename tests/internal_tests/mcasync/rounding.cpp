@@ -15,7 +15,7 @@ constexpr float a[] = {1.,       -200.,     6600.,    -84480.,
 
 /* Expanded naïve implementation of the polynomial evaluation */
 /* D. Stott Parker, MCA, section 8.1.2 pp.52-54               */
-float expanded(float x) {
+/* float expanded(float x) {
   float r = a[0];
   float x2 = StochasticRound((double)x * x);
   float p = x2;
@@ -26,10 +26,10 @@ float expanded(float x) {
   }
 
   return r;
-}
+} */
 
 // FIXME : doesn't work with 128 bits computation
-/* double expanded(double x) {
+double expanded(double x) {
   double r = a[0];
   double x2 = StochasticRound((__float128)x * x);
   double p = x2;
@@ -41,11 +41,11 @@ float expanded(float x) {
   }
 
   return r;
-} */
+}
 
 int main(int argc, char **argv) {
   srand(time(nullptr));
-  static constexpr float kStep = 0.001;
+  static constexpr float kStep = 0.0001;
   std::ofstream output("out.dat");
   output << std::setprecision(16);
 

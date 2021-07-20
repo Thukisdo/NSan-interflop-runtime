@@ -10,8 +10,6 @@ LINK_LIBRARY = -L../release -linterflop
 test.o: large_array_fill.cpp
 	$(CXX) $(CXXFLAGS) $(INSTRUMENTATION_FLAGS) -o test.o nsan_tests/verificarlo_case4.cc $(LINK_LIBRARY)
 
-
-
 clean :
 	rm -f *.o
 	rm -f *.ll

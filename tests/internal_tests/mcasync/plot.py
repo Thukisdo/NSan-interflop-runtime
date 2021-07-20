@@ -41,6 +41,7 @@ D = np.loadtxt(fname, skiprows=1,
 # Compute all statistics (mu, sigma, s)
 x_values = np.unique(D['x'])
 mu_values = []
+mu_sigma_values = []
 sigma_values = []
 s_values = []
 
@@ -65,6 +66,9 @@ for x in x_values:
     sigma_values.append(sigma)
     s_values.append(s)
 
+mu_sigma_values = np.convolve(sigma_values, np.ones(100), mode='valid') / 100
+mu_sigma_y = np.convolve(x_values, np.ones(100), mode='valid') / 100
+
 
 # Plot all statistics
 # plt.style.use('bmh')
@@ -83,6 +87,7 @@ plt.plot(x_values, s_values, '.')
 plt.subplot(312)
 plt.ylabel("$\hat \sigma$")
 plt.plot(x_values, sigma_values, '.')
+plt.plot(mu_sigma_y, mu_sigma_values, '--')
 
 # Plot samples and mean
 plt.subplot(313)

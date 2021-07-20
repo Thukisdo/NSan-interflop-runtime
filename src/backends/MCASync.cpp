@@ -1,7 +1,15 @@
+/**
+ * @file MCASync.cpp
+ * @author Mathys JAM (mathys.jam@gmail.com)
+ * @brief First prototype for a MCA Synchrone backend
+ * @version 0.7.0
+ * @date 2021-07-20
+ *
+ *
+ */
 #include "backends/MCASync.hpp"
 
-namespace interflop {
-namespace mcasync {
+namespace interflop::mcasync {
 
 std::ostream &operator<<(std::ostream &os, MCASyncShadow128 const &s) {
   auto mean = (s[0] + s[1] + s[2]) / 3;
@@ -48,7 +56,7 @@ float StochasticRound(double x) {
   return ExtendedFP.f64;
 }
 
-// FIXME: Redundant code, should use template to only have one function
+// FIXME: Redundant code, could use templates to only have one function
 // Helper struct for type puning f128 -> ui128
 struct Float128 {
   Float128(__float128 f) : f128(f) {}
@@ -85,5 +93,4 @@ double StochasticRound(__float128 x) {
   return ExtendedFP.f128;
 }
 
-} // namespace mcasync
-} // namespace interflop
+} // namespace interflop::mcasync

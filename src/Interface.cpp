@@ -1,6 +1,24 @@
+/**
+ * @file Interface.cpp
+ * @author Mathys JAM (mathys.jam@gmail.com)
+ * @brief C interface for the library.
+ * @version 0.7.0
+ * @date 2021-07-20
+ * 
+ */
+
 #define BACKEND_DEFINITION
 #include "Context.hpp"
 
+// This file is filled with boilerplate code that declares the interface between
+// the instrumented code and the backends
+// The following should not be changed unless either side of the interface
+// changes.
+//
+// Backends should rely on the provided backend interface and should
+// not modify this file.
+
+// The following functions should be defined outside interflop::
 using namespace interflop;
 
 // ===================

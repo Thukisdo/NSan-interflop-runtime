@@ -1,15 +1,23 @@
+/**
+ * @file DoublePrec.hpp
+ * @author Mathys JAM (mathys.jam@gmail.com)
+ * @brief Double precision backend to mimic native NSan behaviour
+ * @version 0.9.0
+ * @date 2021-07-20
+ *
+ */
+
 #pragma once
+#include "Backend.hpp"
+#include "Flags.hpp"
+#include "OpaqueShadow.hpp"
+#include "Utils.hpp"
 #include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <limits>
 
-#include "Backend.hpp"
-#include "Flags.hpp"
-#include "Shadow.hpp"
-#include "Utils.hpp"
-namespace interflop {
-namespace doubleprec {
+namespace interflop::doubleprec {
 
 struct DoublePrecShadow128 {
   double val;
@@ -105,7 +113,8 @@ public:
   }
 
   // We need to perform the comparison with both shadows, and compare it to the
-  // native result To ease the implementaiton, we take the native result as a
+  // native result
+  // To ease the implementaiton, we take the native result as a
   // parameter
   virtual bool CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
                          ShadowPtr LeftShadowOperand, FPType RightOperand,
@@ -188,8 +197,7 @@ public:
     // We unvectorize the check
     // We shall not acess Operand[I] if we're not working on vectors
     if constexpr (VectorSize > 1) {
-      // FIXME : Should we check every value of the vector, or print as soon as
-      // an error arises ?
+      // Loop until failure or all elements have been checked
       for (int I = 0; not Res && (I < VectorSize); I++)
         Res = Res || CheckInternal(Operand[I], Shadow[I]);
       return Res;
@@ -224,8 +232,7 @@ private:
         continue; // NaN <=> NaN is always true, no need to go further
 
       // Handle (ordered) comparisons
-      // FIXME : we could gain some performance by using a constexpr if, but
-      // that would require the use of a template
+      // FIXME : Doesn't raise the same errors as the original code
       if (Opcode == FCmp_oeq || Opcode == FCmp_ueq)
         Res = Res && (LeftOp == RightOp);
       else if (Opcode == FCmp_one || Opcode == FCmp_une)
@@ -248,6 +255,8 @@ private:
     // We want to print the values and their shadow counterparts
 
     std::cout << "\tValue  a: { ";
+
+    // Avoid acessing a[I] if we're not working on vectors
     if constexpr (VectorSize > 1) {
       for (int I = 0; I < VectorSize; I++)
         std::cout << a[I] << " ";
@@ -307,5 +316,4 @@ private:
     std::cout << "\033[0m";
   }
 };
-} // namespace doubleprec
-} // namespace interflop
+} // namespace interflop::doubleprec
