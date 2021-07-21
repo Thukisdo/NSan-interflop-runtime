@@ -90,7 +90,6 @@ public:
   using MCASyncShadow = typename MCASyncShadowTy<ShadowType>::Type;
   static constexpr size_t VectorSize = FPTypeInfo<FPType>::VectorSize;
 
-  MCASyncRuntime(RuntimeStats *Stats) : InterflopBackend<FPType>(Stats) {}
   virtual ~MCASyncRuntime() = default;
 
   // FIXME : Should be moved elsewhere
@@ -220,7 +219,7 @@ public:
     bool Res = FCmp(Opcode, LeftShadow, RightShadow);
     // We expect both comparison to be equal, else we print an error
     if (Value != Res) {
-      InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::FCmpCheck);
+      //InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::FCmpCheck);
       if (not RuntimeFlags::DisableWarning)
         FCmpCheckFail(LeftOperand, LeftShadow, RightOperand, RightShadow);
     }
@@ -291,7 +290,7 @@ public:
     } else
       Res = CheckInternal(Operand, Shadow[0]);
     if (Res) {
-      InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::Check);
+      //InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::Check);
       if (not RuntimeFlags::DisableWarning)
         CheckFail(Operand, Shadow);
       if (RuntimeFlags::ExitOnError)

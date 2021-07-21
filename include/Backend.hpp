@@ -70,8 +70,6 @@ public:
   using ShadowType = typename FPTypeInfo<FPType>::ShadowType;
   static constexpr size_t VectorSize = FPTypeInfo<FPType>::VectorSize;
 
-  InterflopBackend(RuntimeStats *Stats) : Stats(Stats) {}
-
   virtual ~InterflopBackend() = default;
 
   // Binary operator overload

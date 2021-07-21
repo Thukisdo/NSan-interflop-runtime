@@ -21,7 +21,10 @@ namespace interflop {
 
 class InterflopContext {
 public:
-  // Pre-allocates every backend and the Stats object
+
+  template<typename T>
+  using Backend = doubleprec::DoublePrecRuntime<T>;
+  
   InterflopContext();
 
   // Since The context is a global object, it will be destroyed when the program
@@ -34,25 +37,8 @@ public:
 
   RuntimeStats const *getStats() const { return getStats(); }
 
-  template <typename T> InterflopBackend<T> &getBackendFor() {
-    // Every backend should've been created in the constructor
-    // and std::unique_ptr will return nullptr thus segfaulting if it's not
-    return *reinterpret_cast<InterflopBackend<T> *>(
-        Backends[FPTypeInfo<T>::Type].get());
-  }
-
 private:
-  // this function is marked noexcept since we should immediatly terminate the
-  // program if we fail to allocate a runtime
-  template <typename T>
-  std::unique_ptr<InterflopBackendBase> makeBackend() noexcept {
-    return std::make_unique<doubleprec::DoublePrecRuntime<T>>(Stats.get());
-  }
 
-  // We will need a runtime for each floating-point type
-  // since we're not using static classes
-  std::array<std::unique_ptr<InterflopBackendBase>, utils::kNumFloatType>
-      Backends;
   std::unique_ptr<RuntimeStats> Stats;
 };
 

@@ -45,14 +45,12 @@ public:
   // We need aliasing to ease the backend implementation
   using ScalarVT = typename FPTypeInfo<FPType>::ScalarType;
   using ShadowType = typename FPTypeInfo<FPType>::ShadowType;
-  using ShadowPtr = ShadowType **;
   using DoublePrecShadow = typename DoublePrecShadowTy<ShadowType>::Type;
   static constexpr size_t VectorSize = FPTypeInfo<FPType>::VectorSize;
 
-  DoublePrecRuntime(RuntimeStats *Stats) : InterflopBackend<FPType>(Stats) {}
   virtual ~DoublePrecRuntime() = default;
 
-  // FIXME : The name should be stored elsewhere in order not to require on a
+  // FIXME : The name should be stored elsewhere in order not to require a
   // templated object
   virtual const char *getName() const final {
     return "Double precision (adapted from NSan)";
@@ -60,9 +58,9 @@ public:
 
   // Binary operator overload
   // We perform the same operation in the shadow space
-  virtual FPType Add(FPType LeftOperand, ShadowPtr LeftShadowOperand,
-                     FPType RightOperand, ShadowPtr const RightShadowOperand,
-                     ShadowPtr Res) final {
+  virtual FPType Add(FPType LeftOperand, ShadowType** LeftShadowOperand,
+                     FPType RightOperand, ShadowType** const RightShadowOperand,
+                     ShadowType** Res) final {
 
     auto LeftShadow = reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
     auto RightShadow =
@@ -74,9 +72,9 @@ public:
     return LeftOperand + RightOperand;
   }
 
-  virtual FPType Sub(FPType LeftOperand, ShadowPtr LeftShadowOperand,
-                     FPType RightOperand, ShadowPtr const RightShadowOperand,
-                     ShadowPtr Res) final {
+  virtual FPType Sub(FPType LeftOperand, ShadowType** LeftShadowOperand,
+                     FPType RightOperand, ShadowType** const RightShadowOperand,
+                     ShadowType** Res) final {
     auto LeftShadow = reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
     auto RightShadow =
         reinterpret_cast<DoublePrecShadow **>(RightShadowOperand);
@@ -87,9 +85,9 @@ public:
     return LeftOperand - RightOperand;
   }
 
-  virtual FPType Mul(FPType LeftOperand, ShadowPtr LeftShadowOperand,
-                     FPType RightOperand, ShadowPtr const RightShadowOperand,
-                     ShadowPtr Res) final {
+  virtual FPType Mul(FPType LeftOperand, ShadowType** LeftShadowOperand,
+                     FPType RightOperand, ShadowType** const RightShadowOperand,
+                     ShadowType** Res) final {
     auto LeftShadow = reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
     auto RightShadow =
         reinterpret_cast<DoublePrecShadow **>(RightShadowOperand);
@@ -100,9 +98,9 @@ public:
     return LeftOperand * RightOperand;
   }
 
-  virtual FPType Div(FPType LeftOperand, ShadowPtr LeftShadowOperand,
-                     FPType RightOperand, ShadowPtr const RightShadowOperand,
-                     ShadowPtr Res) final {
+  virtual FPType Div(FPType LeftOperand, ShadowType** LeftShadowOperand,
+                     FPType RightOperand, ShadowType** const RightShadowOperand,
+                     ShadowType** Res) final {
 
     auto LeftShadow = reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
     auto RightShadow =
@@ -119,8 +117,8 @@ public:
   // To ease the implementaiton, we take the native result as a
   // parameter
   virtual bool CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
-                         ShadowPtr LeftShadowOperand, FPType RightOperand,
-                         ShadowPtr RightShadowOperand, bool Value) final {
+                         ShadowType** LeftShadowOperand, FPType RightOperand,
+                         ShadowType** RightShadowOperand, bool Value) final {
 
     auto LeftShadow = reinterpret_cast<DoublePrecShadow **>(LeftShadowOperand);
     auto RightShadow =
@@ -133,7 +131,7 @@ public:
     // We expect both comparison to be equal, else we emit a warning
     if (Value != Res) {
       // We may want to store additional information
-      InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::FCmpCheck);
+      //InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::FCmpCheck);
       if (not RuntimeFlags::DisableWarning)
         FCmpCheckFail(LeftOperand, LeftShadow, RightOperand, RightShadow);
     }
@@ -164,8 +162,8 @@ public:
     }
   }
 
-  virtual FPType Neg(FPType Operand, ShadowPtr ShadowOperand,
-                     ShadowPtr Res) final {
+  virtual FPType Neg(FPType Operand, ShadowType** ShadowOperand,
+                     ShadowType** Res) final {
     auto Shadow = reinterpret_cast<DoublePrecShadow **>(ShadowOperand);
     auto ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
@@ -176,7 +174,7 @@ public:
   }
 
   // We simply extend the original shadow to double precision
-  virtual void MakeShadow(FPType Operand, ShadowPtr Res) final {
+  virtual void MakeShadow(FPType Operand, ShadowType** Res) final {
     auto ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
     for (int I = 0; I < VectorSize; I++) {
@@ -208,7 +206,7 @@ public:
 
     if (Res) {
       // We may want to store additional information
-      InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::Check);
+      //InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::Check);
       if (not RuntimeFlags::DisableWarning)
         CheckFail(Operand, Shadow);
       if (RuntimeFlags::ExitOnError)
