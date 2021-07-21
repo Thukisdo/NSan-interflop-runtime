@@ -1,6 +1,6 @@
 /**
  * @file Utils.hpp
- * @author Mathys JAM (mathys.jam@gmail.com)
+ * @author Mathys JAM (mathys.jam@ens.uvsq.fr)
  * @brief Defines a set of utility functions.
  * @version 0.7.0
  * @date 2021-07-20

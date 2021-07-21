@@ -1,6 +1,6 @@
 /**
  * @file Utils.cpp
- * @author Mathys JAM (mathys.jam@gmail.com)
+ * @author Mathys JAM (mathys.jam@ens.uvsq.fr)
  * @brief Utilitary functions implementation
  * @version 0.5.0
  * @date 2021-07-20

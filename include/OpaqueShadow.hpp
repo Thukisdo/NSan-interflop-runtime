@@ -1,6 +1,6 @@
 /**
  * @file Shadow.hpp
- * @author Mathys JAM (mathys.jam@gmail.com)
+ * @author Mathys JAM (mathys.jam@ens.uvsq.fr)
  * @brief Defines the opaque Shadow type and utilitary functions.
  * @version 1.0.0
  * @date 2021-07-20

@@ -1,6 +1,6 @@
 /**
  * @file DoublePrec.hpp
- * @author Mathys JAM (mathys.jam@gmail.com)
+ * @author Mathys JAM (mathys.jam@ens.uvsq.fr)
  * @brief Double precision backend to mimic native NSan behaviour
  * @version 0.9.0
  * @date 2021-07-20
@@ -19,14 +19,15 @@
 
 namespace interflop::doubleprec {
 
+namespace {
 struct DoublePrecShadow128 {
   double val;
-  uint64_t padding[1];
+  //uint64_t padding[1];
 };
 
 struct DoublePrecShadow256 {
   __float128 val;
-  uint64_t padding[2];
+  //uint64_t padding[2];
 };
 
 template <typename ShadowTy> struct DoublePrecShadowTy {
@@ -34,6 +35,7 @@ template <typename ShadowTy> struct DoublePrecShadowTy {
       typename std::conditional<std::is_same<ShadowTy, OpaqueShadow128>::value,
                                 DoublePrecShadow128, DoublePrecShadow256>::type;
 };
+} // namespace
 
 // Double precision runtime using c++ templates
 // Scalar and vectors are treated in the same methods

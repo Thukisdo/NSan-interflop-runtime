@@ -1,6 +1,6 @@
 /**
  * @file Interface.cpp
- * @author Mathys JAM (mathys.jam@gmail.com)
+ * @author Mathys JAM (mathys.jam@ens.uvsq.fr)
  * @brief C interface for the library.
  * @version 0.7.0
  * @date 2021-07-20

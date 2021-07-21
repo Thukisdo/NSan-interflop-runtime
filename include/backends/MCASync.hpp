@@ -1,6 +1,6 @@
 /**
  * @file MCASync.hpp
- * @author Mathys JAM (mathys.jam@gmail.com)
+ * @author Mathys JAM (mathys.jam@ens.uvsq.fr), Pablo Oliveira (pablo.oliveira.uvsq.fr)
  * @brief MCA Synchrone backend, using 3 orbitals
  * @version 0.7.0
  * @date 2021-07-20
@@ -73,6 +73,7 @@ template <typename ScalarVT> struct MCASyncExtendedVT {
 } // anonymous namespace
 
 // Adapted from a Julia rounding code
+// (Not inside the anonymous namespace, to allow testing)
 // https://github.com/milankl/StochasticRounding.jl/blob/main/src/float32sr.jl
 float StochasticRound(double x);
 double StochasticRound(__float128 x);

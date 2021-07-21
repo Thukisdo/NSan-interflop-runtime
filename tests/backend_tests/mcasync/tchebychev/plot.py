@@ -34,7 +34,7 @@ prec_dec=float(prec_b)*math.log(2, 10)
 #   - i: sample number
 #   - x: input value
 #   - T: polynomial evaluation on x, T(x)
-D = np.loadtxt(fname, skiprows=1,
+D = np.loadtxt(fname,
         dtype = dict(names=('i', 'x', 'T'),
                      formats=('i4', 'f8', 'f8')))
 
@@ -66,7 +66,9 @@ for x in x_values:
     sigma_values.append(sigma)
     s_values.append(s)
 
+# Computes the rolling mean for sigma
 mu_sigma_values = np.convolve(sigma_values, np.ones(100), mode='valid') / 100
+# Needed to properly plot the rolling mean
 mu_sigma_y = np.convolve(x_values, np.ones(100), mode='valid') / 100
 
 

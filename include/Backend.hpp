@@ -1,17 +1,19 @@
 /**
  * @file Backend.hpp
- * @author Mathys JAM (mathys.jam@gmail.com)
+ * @author Mathys JAM (mathys.jam@ens.uvsq.fr)
  * @brief Base classes for the backends.
  * @version 0.5.0
  * @date 2021-07-20
- * 
- * 
+ *
+ *
  */
 
 #pragma once
 #include "OpaqueShadow.hpp"
 #include <iostream>
 #include <unordered_map>
+
+namespace interflop {
 
 enum FCmpOpcode {
   OrderedFCmp,
@@ -26,7 +28,10 @@ enum FCmpOpcode {
   FCmp_ult
 };
 
-namespace interflop {
+enum class InterflopBackends {
+  DoublePrecision,
+  MCASynchrone
+};
 
 class RuntimeStats {
 public:
@@ -54,7 +59,6 @@ public:
   // Allow correct destruction of the backend
   virtual ~InterflopBackendBase() = default;
 };
-
 
 // Base class for all backends
 // Should be derived accordingly to define multiple tools

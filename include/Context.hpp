@@ -1,6 +1,6 @@
 /**
  * @file Context.hpp
- * @author Mathys JAM (mathys.jam@gmail.com)
+ * @author Mathys JAM (mathys.jam@ens.uvsq.fr)
  * @brief Interflop context, stores the current backend and additional runtime
  *  information.
  * @version 0.5.0
@@ -49,6 +49,8 @@ private:
     return std::make_unique<doubleprec::DoublePrecRuntime<T>>(Stats.get());
   }
 
+  // We will need a runtime for each floating-point type
+  // since we're not using static classes
   std::array<std::unique_ptr<InterflopBackendBase>, utils::kNumFloatType>
       Backends;
   std::unique_ptr<RuntimeStats> Stats;

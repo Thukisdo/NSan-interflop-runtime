@@ -1,6 +1,6 @@
 /**
  * @file Interflop.cpp
- * @author Mathys JAM (mathys.jam@gmail.com)
+ * @author Mathys JAM (mmathys.jam@ens.uvsq.fr)
  * @brief Module constructor and startup logic.
  * @version 0.5.0
  * @date 2021-07-20

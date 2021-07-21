@@ -1,6 +1,6 @@
 /**
  * @file MCASync.cpp
- * @author Mathys JAM (mathys.jam@gmail.com)
+ * @author Mathys JAM (mathys.jam@ens.uvsq.fr)
  * @brief First prototype for a MCA Synchrone backend
  * @version 0.7.0
  * @date 2021-07-20
