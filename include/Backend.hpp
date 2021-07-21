@@ -50,59 +50,45 @@ private:
   std::unordered_map<WarningType, unsigned long> Warnings;
 };
 
-// Needed to be able to build an array of backend
-class InterflopBackendBase {
-public:
-  // Should be moved elsewhere
-  virtual const char *getName() const { return "Interflop"; }
-
-  // Allow correct destruction of the backend
-  virtual ~InterflopBackendBase() = default;
-};
 
 // Base class for all backends
 // Should be derived accordingly to define multiple tools
 // The context is reponsible for allowing them at startup
 template <typename FPType>
-class InterflopBackend : public InterflopBackendBase {
+class InterflopBackend {
 public:
   using ScalarVT = typename FPTypeInfo<FPType>::ScalarType;
   using ShadowType = typename FPTypeInfo<FPType>::ShadowType;
   static constexpr size_t VectorSize = FPTypeInfo<FPType>::VectorSize;
 
-  virtual ~InterflopBackend() = default;
-
   // Binary operator overload
   // Should perform the operation on both the shadow and the original value
-  virtual FPType Add(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
-                     ShadowType **res) = 0;
+  FPType Add(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
+                     ShadowType **res);
 
-  virtual FPType Sub(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
-                     ShadowType **res) = 0;
-  virtual FPType Mul(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
-                     ShadowType **res) = 0;
+  FPType Sub(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
+                     ShadowType **res);
+  FPType Mul(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
+                     ShadowType **res);
 
-  virtual FPType Div(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
-                     ShadowType **res) = 0;
+  FPType Div(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
+                     ShadowType **res);
 
   // Should return -a and res = -sa
-  virtual FPType Neg(FPType a, ShadowType **sa, ShadowType **res) = 0;
+  FPType Neg(FPType a, ShadowType **sa, ShadowType **res);
 
-  virtual bool CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
+  bool CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
                          ShadowType **LeftShadowOperand, FPType RightOperand,
-                         ShadowType **RightShadowOperand, bool Value) = 0;
+                         ShadowType **RightShadowOperand, bool Value);
 
-  virtual void DownCast(FPType a, ShadowType **sa, OpaqueShadow128 **res) = 0;
-  virtual void UpCast(FPType a, ShadowType **sa, OpaqueShadow256 **res) = 0;
+  void DownCast(FPType a, ShadowType **sa, OpaqueShadow128 **res);
+  void UpCast(FPType a, ShadowType **sa, OpaqueShadow256 **res);
 
-  virtual void MakeShadow(FPType a, ShadowType **res) = 0;
+  void MakeShadow(FPType a, ShadowType **res);
 
   // This function should return true if the check raised an error
   // (i.e. The shadow value is not equal to the value)
   // This will cause the programm to resume computation from the original value
-  virtual bool Check(FPType a, ShadowType **sa) = 0;
-
-protected:
-  RuntimeStats *Stats;
+  bool Check(FPType a, ShadowType **sa);
 };
 } // namespace interflop

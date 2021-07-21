@@ -14,12 +14,16 @@ SET(SRC src/Interface.cpp
         src/Utils.cpp 
         src/backends/MCASync.cpp)
 
-SET(HEADERS include/backends/DoublePrec.hpp 
-            include/backends/MCASync.hpp 
-            include/Flags.hpp 
+SET(HEADERS include/Flags.hpp 
             include/Backend.hpp 
             include/OpaqueShadow.hpp 
             include/Utils.hpp)
 
 add_library(interflop STATIC ${SRC} ${HEADERS})
 target_include_directories(interflop PUBLIC include)
+
+add_library(doubleprec STATIC src/backends/DoublePrec.cpp)
+target_include_directories(doubleprec PUBLIC include)
+
+add_library(mcasync STATIC src/backends/MCASync.cpp)
+target_include_directories(mcasync PUBLIC include)

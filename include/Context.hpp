@@ -12,8 +12,6 @@
 #include "Backend.hpp"
 #include "OpaqueShadow.hpp"
 #include "Utils.hpp"
-#include "backends/DoublePrec.hpp"
-#include "backends/MCASync.hpp"
 #include <iostream>
 #include <memory>
 
@@ -21,10 +19,8 @@ namespace interflop {
 
 class InterflopContext {
 public:
+  template <typename T> using Backend = InterflopBackend<T>;
 
-  template<typename T>
-  using Backend = doubleprec::DoublePrecRuntime<T>;
-  
   InterflopContext();
 
   // Since The context is a global object, it will be destroyed when the program
@@ -38,7 +34,6 @@ public:
   RuntimeStats const *getStats() const { return getStats(); }
 
 private:
-
   std::unique_ptr<RuntimeStats> Stats;
 };
 
