@@ -8,12 +8,19 @@
  *
  */
 #include "backends/MCASync.hpp"
+#include "Context.hpp"
 
 typedef __int128 int128_t;
 typedef unsigned __int128 uint128_t;
 
 namespace interflop {
 
+void backend_init() noexcept {
+  InterflopContext::getInstance().setBackendName("MCA Synchrone");
+  // We will use utils::rand, no need to call srand
+}
+
+// Shadow struct and helper methods
 namespace {
 
 struct MCASyncShadow128 {
@@ -350,6 +357,33 @@ InterflopBackend<FPType>::Div(FPType LeftOp, ShadowType **LeftOpaqueShadow,
 }
 
 template <typename FPType>
+bool InterflopBackend<FPType>::Check(FPType Operand,
+                                     ShadowType **ShadowOperand) {
+
+  auto Shadow = reinterpret_cast<MCASyncShadow<FPType> **>(ShadowOperand);
+
+  bool Res = 0;
+  // We unvectorize the check
+  // We shall not acess Operand[I] if we're not working on vectors
+  if constexpr (VectorSize > 1) {
+    for (int I = 0; not Res && (I < VectorSize); I++)
+      Res = Res || CheckInternal(Operand[I], Shadow[I]);
+    return Res;
+  } else
+    Res = CheckInternal(Operand, Shadow[0]);
+  if (Res) {
+    if (not RuntimeFlags::DisableWarning)
+    {
+      InterflopContext::getInstance().getWarningRecorder().Register();
+      CheckFail<VectorSize>(Operand, Shadow);
+    }
+    if (RuntimeFlags::ExitOnError)
+      exit(1);
+  }
+  return Res;
+}
+
+template <typename FPType>
 bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
                                          ShadowType **LeftShadowOperand,
                                          FPType RightOperand,
@@ -363,10 +397,14 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
   bool Res = FCmp<VectorSize>(Opcode, LeftShadow, RightShadow);
   // We expect both comparison to be equal, else we print an error
   if (Value != Res) {
-    // InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::FCmpCheck);
     if (not RuntimeFlags::DisableWarning)
+    {
+      InterflopContext::getInstance().getWarningRecorder().Register();
       FCmpCheckFail<VectorSize>(LeftOperand, LeftShadow, RightOperand,
                                 RightShadow);
+    }
+    if (RuntimeFlags::ExitOnError)
+      exit(1);
   }
   // We return the shadow comparison result to be able to correctly branch
   return Res;
@@ -425,31 +463,6 @@ void InterflopBackend<FPType>::MakeShadow(FPType Source, ShadowType **Res) {
       ResShadow[0]->val[2] = StochasticRound(Source);
     }
   }
-}
-
-template <typename FPType>
-bool InterflopBackend<FPType>::Check(FPType Operand,
-                                     ShadowType **ShadowOperand) {
-
-  auto Shadow = reinterpret_cast<MCASyncShadow<FPType> **>(ShadowOperand);
-
-  bool Res = 0;
-  // We unvectorize the check
-  // We shall not acess Operand[I] if we're not working on vectors
-  if constexpr (VectorSize > 1) {
-    for (int I = 0; not Res && (I < VectorSize); I++)
-      Res = Res || CheckInternal(Operand[I], Shadow[I]);
-    return Res;
-  } else
-    Res = CheckInternal(Operand, Shadow[0]);
-  if (Res) {
-    // InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::Check);
-    if (not RuntimeFlags::DisableWarning)
-      CheckFail<VectorSize>(Operand, Shadow);
-    if (RuntimeFlags::ExitOnError)
-      exit(1);
-  }
-  return Res;
 }
 
 template class InterflopBackend<float>;

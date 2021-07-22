@@ -10,6 +10,7 @@
 
 #pragma once
 #include "OpaqueShadow.hpp"
+#include "Utils.hpp"
 #include <iostream>
 #include <unordered_map>
 
@@ -28,34 +29,40 @@ enum FCmpOpcode {
   FCmp_ult
 };
 
-enum class InterflopBackends {
-  DoublePrecision,
-  MCASynchrone
-};
+enum class InterflopBackends { DoublePrecision, MCASynchrone };
 
-class RuntimeStats {
+// Guaranteed to be called before the first call to the backend.
+void backend_init() noexcept;
+void backend_finalize() noexcept;
+
+class WarningRecorder {
 public:
-  enum WarningType { Check, FCmpCheck };
+  enum class WarningType { ValueCheck, FCmp };
 
-  void RegisterWarning(WarningType Type) { Warnings[Type]++; }
+  void print(std::string const &BackendName, std::ostream &out) {
+    out << "Interflop results:"
+        << "\n";
+    out << "Backend: " << BackendName << "\n";
 
-  void print(std::string const &BackendName) {
-    std::cout << "Interflop instrumentation using " << BackendName
-              << " Backend :\n";
-    std::cout << "Check Warning(s) : " << Warnings[Check] << std::endl;
-    std::cout << "FCmpCheck Warning(s) : " << Warnings[FCmpCheck] << std::endl;
+    for (auto &It : Map) {
+      // We need to flush the stream before printing the stack, or the stack
+      // might appear before the warning
+      out << It.second << " warnings at " << std::flush;
+      utils::PrintStackTrace(It.first);
+      out << std::endl;
+    }
   }
 
-private:
-  std::unordered_map<WarningType, unsigned long> Warnings;
-};
+  void Register() { Map[utils::SaveStackTrace()]++; }
 
+private:
+  std::unordered_map<uint32_t, int> Map;
+};
 
 // Base class for all backends
 // Should be derived accordingly to define multiple tools
 // The context is reponsible for allowing them at startup
-template <typename FPType>
-class InterflopBackend {
+template <typename FPType> class InterflopBackend {
 public:
   using ScalarVT = typename FPTypeInfo<FPType>::ScalarType;
   using ShadowType = typename FPTypeInfo<FPType>::ShadowType;
@@ -64,31 +71,31 @@ public:
   // Binary operator overload
   // Should perform the operation on both the shadow and the original value
   FPType Add(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
-                     ShadowType **res);
+             ShadowType **res);
 
   FPType Sub(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
-                     ShadowType **res);
+             ShadowType **res);
   FPType Mul(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
-                     ShadowType **res);
+             ShadowType **res);
 
   FPType Div(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
-                     ShadowType **res);
+             ShadowType **res);
 
   // Should return -a and res = -sa
   FPType Neg(FPType a, ShadowType **sa, ShadowType **res);
-
-  bool CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
-                         ShadowType **LeftShadowOperand, FPType RightOperand,
-                         ShadowType **RightShadowOperand, bool Value);
-
-  void DownCast(FPType a, ShadowType **sa, OpaqueShadow128 **res);
-  void UpCast(FPType a, ShadowType **sa, OpaqueShadow256 **res);
-
-  void MakeShadow(FPType a, ShadowType **res);
 
   // This function should return true if the check raised an error
   // (i.e. The shadow value is not equal to the value)
   // This will cause the programm to resume computation from the original value
   bool Check(FPType a, ShadowType **sa);
+
+  bool CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
+                 ShadowType **LeftShadowOperand, FPType RightOperand,
+                 ShadowType **RightShadowOperand, bool Value);
+
+  void DownCast(FPType a, ShadowType **sa, OpaqueShadow128 **res);
+  void UpCast(FPType a, ShadowType **sa, OpaqueShadow256 **res);
+
+  void MakeShadow(FPType a, ShadowType **res);
 };
 } // namespace interflop

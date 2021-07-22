@@ -1,6 +1,6 @@
 /**
  * @file DoublePrec.cpp
- * @author Mathys JAM (mathys.jam@gmail.com)
+ * @author Mathys JAM (mathys.jam@ens.uvsq.fr)
  * @brief Double precision backend to mimic native nsan behaviour
  * @version 9.0
  * @date 2021-07-20
@@ -9,8 +9,13 @@
  */
 
 #include "backends/DoublePrec.hpp"
+#include "Context.hpp"
 
 namespace interflop {
+
+void backend_init() noexcept {
+  InterflopContext::getInstance().setBackendName("DoublePrec");
+}
 
 namespace {
 struct DoublePrecShadow128 {
@@ -94,7 +99,7 @@ template <typename ScalarVT, typename DoublePrecShadow>
 bool CheckInternal(ScalarVT Operand, DoublePrecShadow *Shadow) {
 
   // Same as nsan default max threshold
-  // FIXME : Should be defined as flag for more versatility
+  // FIXME : Should be defined as flags for more versatility
   static constexpr double MaxAbsoluteError = 1.0 / std::pow(2, 32);
   static constexpr double MaxRelativeError = 1.0 / std::pow(2, 19);
 
@@ -207,6 +212,37 @@ FPType InterflopBackend<FPType>::Div(FPType LeftOperand,
   return LeftOperand / RightOperand;
 }
 
+// Called when we need to compare the native value with the shadow one to see
+// if they have diverged
+template <typename FPType>
+bool InterflopBackend<FPType>::Check(FPType Operand,
+                                     ShadowType **ShadowOperand) {
+
+  auto **Shadow = reinterpret_cast<DoublePrecShadow<FPType> **>(ShadowOperand);
+
+  bool Res = 0;
+  // We unvectorize the check
+  // We shall not acess Operand[I] if we're not working on vectors
+  if constexpr (VectorSize > 1) {
+    // Loop until failure or all elements have been checked
+    for (int I = 0; not Res && (I < VectorSize); I++)
+      Res = Res || CheckInternal(Operand[I], Shadow[I]);
+    return Res;
+  } else
+    Res = CheckInternal(Operand, Shadow[0]);
+
+  if (Res) {
+    // We may want to store additional information
+    if (not RuntimeFlags::DisableWarning) {
+      InterflopContext::getInstance().getWarningRecorder().Register();
+      CheckFail<VectorSize>(Operand, Shadow);
+    }
+    if (RuntimeFlags::ExitOnError)
+      exit(1);
+  }
+  return Res;
+}
+
 // We need to perform the comparison with both shadows, and compare it to the
 // native result
 // To ease the implementaiton, we take the native result as a
@@ -230,9 +266,13 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
   // We expect both comparison to be equal, else we emit a warning
   if (Value != Res) {
     // We may want to store additional information
-    // InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::FCmpCheck);
-    if (not RuntimeFlags::DisableWarning)
-      FCmpCheckFail<VectorSize>(LeftOperand, LeftShadow, RightOperand, RightShadow);
+    if (not RuntimeFlags::DisableWarning) {
+      InterflopContext::getInstance().getWarningRecorder().Register();
+      FCmpCheckFail<VectorSize>(LeftOperand, LeftShadow, RightOperand,
+                                RightShadow);
+    }
+    if (RuntimeFlags::ExitOnError)
+      exit(1);
   }
   // We return the shadow comparison result to be able to correctly branch
   return Res;
@@ -289,37 +329,6 @@ void InterflopBackend<FPType>::MakeShadow(FPType Operand, ShadowType **Res) {
     else
       ResShadow[0]->val = Operand;
   }
-}
-
-// Called when we need to compare the native value with the shadow one to see
-// if they have diverged
-template <typename FPType>
-bool InterflopBackend<FPType>::Check(FPType Operand,
-                                     ShadowType **ShadowOperand) {
-
-  auto **Shadow =
-      reinterpret_cast<DoublePrecShadow<FPType> **>(ShadowOperand);
-
-  bool Res = 0;
-  // We unvectorize the check
-  // We shall not acess Operand[I] if we're not working on vectors
-  if constexpr (VectorSize > 1) {
-    // Loop until failure or all elements have been checked
-    for (int I = 0; not Res && (I < VectorSize); I++)
-      Res = Res || CheckInternal(Operand[I], Shadow[I]);
-    return Res;
-  } else
-    Res = CheckInternal(Operand, Shadow[0]);
-
-  if (Res) {
-    // We may want to store additional information
-    // InterflopBackend<FPType>::Stats->RegisterWarning(RuntimeStats::Check);
-    if (not RuntimeFlags::DisableWarning)
-      CheckFail<VectorSize>(Operand, Shadow);
-    if (RuntimeFlags::ExitOnError)
-      exit(1);
-  }
-  return Res;
 }
 
 template class InterflopBackend<float>;

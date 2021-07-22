@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include "Backend.hpp"
 #include "Context.hpp"
 
 using namespace interflop;
@@ -18,5 +19,5 @@ using namespace interflop;
 extern "C"
 void __interflop_init()
 {
-  std::srand(time(NULL));
+  backend_init();
 }

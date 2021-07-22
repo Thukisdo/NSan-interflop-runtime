@@ -23,8 +23,9 @@
 
 namespace interflop {
 
-  // Adapted from a Julia rounding code
-  // https://github.com/milankl/StochasticRounding.jl/blob/main/src/float32sr.jl
-  float StochasticRound(double x);
-  double StochasticRound(__float128 x);
+// Adapted from a Julia rounding code
+// Voluntary making it avaible externally for testing purposes
+// https://github.com/milankl/StochasticRounding.jl/blob/main/src/float32sr.jl
+float StochasticRound(double x);
+double StochasticRound(__float128 x);
 } // namespace interflop

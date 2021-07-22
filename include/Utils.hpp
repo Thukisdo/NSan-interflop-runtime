@@ -14,9 +14,6 @@
 #include <limits>
 #include <random>
 
-// Defined in nsan's runtime
-void __nsan_dump_stacktrace();
-
 namespace std {
 
 // std::ostream does not natively support __float128
@@ -56,18 +53,15 @@ enum FloatType {
 // NSan's runtime is required to be linked in.
 void DumpStacktrace() noexcept;
 
+// Save the current stacktrace and returns the save ID
+uint32_t SaveStackTrace() noexcept;
+
+// Print the stacktrace of given ID
+void PrintStackTrace(uint32_t StackId) noexcept;
+
 // Raise an error and terminate the program
 [[noreturn]] void unreachable(const char *str) noexcept;
-
-// std::abs and std::isnan do not natively support __float128
-template <typename T> T abs(T x) { return (x < 0) ? -x : x; }
-
-// Required to check for unordered comparisons
-template <typename T> bool isnan(T x) { return std::isnan(x); }
-
-template <> inline bool isnan(__float128 x) {
-  return std::isnan(static_cast<double>(x));
-}
+[[noreturn]] void exit(int status) noexcept;
 
 // Return an integer between [LowerBound; Upperbound] included
 // By default between [T::min; T::max]
@@ -87,5 +81,21 @@ T rand(const T LowerBound = std::numeric_limits<T>::min(),
   uniform_distribution distribution(LowerBound, UpperBound);
   return distribution(RandomGenerator);
 }
+
+// std::abs and std::isnan do not natively support __float128
+template <typename T> T abs(T x) { return (x < 0) ? -x : x; }
+
+// Required to check for unordered comparisons
+template <typename T> bool isnan(T x) { return std::isnan(x); }
+
+template <> inline bool isnan(__float128 x) {
+  return std::isnan(static_cast<double>(x));
+}
+
+
+
+
+
+
 } // namespace utils
 } // namespace interflop

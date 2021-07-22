@@ -10,6 +10,7 @@
 
 #pragma once
 #include "Backend.hpp"
+#include "Flags.hpp"
 #include "OpaqueShadow.hpp"
 #include "Utils.hpp"
 #include <iostream>
@@ -21,24 +22,27 @@ class InterflopContext {
 public:
   template <typename T> using Backend = InterflopBackend<T>;
 
-  InterflopContext();
+  static InterflopContext &getInstance() {
+    static InterflopContext singleton;
+    return singleton;
+  }
 
   // Since The context is a global object, it will be destroyed when the program
   // ends
-  ~InterflopContext() {}
+  ~InterflopContext() {
+    if (not RuntimeFlags::DisableWarning)
+      WRecord.print(BackendName, std::cout);
+  }
+
+  WarningRecorder &getWarningRecorder() { return WRecord; }
 
   std::string const &getBackendName() const;
-
-  RuntimeStats *getStats() { return Stats.get(); }
-
-  RuntimeStats const *getStats() const { return getStats(); }
+  void setBackendName(std::string const &value) { BackendName = value; }
 
 private:
-  std::unique_ptr<RuntimeStats> Stats;
-};
+  std::string BackendName{"UndefinedBackend"};
 
-// We should probably use a singleton for the context
-// Instead of a global object, but it's easier to access this way
-extern InterflopContext Context;
+  WarningRecorder WRecord;
+};
 
 } // namespace interflop
