@@ -1,9 +1,6 @@
 #include <cstdio>
 #include <cmath>
 
-typedef float v2float __attribute__((vector_size (8)));
-
-
 int main() {
   float a = 100.0f;
   float b = 1000.0f;

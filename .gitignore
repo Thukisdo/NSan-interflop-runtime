@@ -11,3 +11,5 @@ release
 Release
 debug
 Debug
+*.dat
+*.pdf
