@@ -13,6 +13,8 @@
 
 namespace interflop {
 
+using namespace doubleprec;
+
 void BackendInit() noexcept {
   InterflopContext::getInstance().setBackendName("DoublePrec");
 }
@@ -22,15 +24,6 @@ void BackendFinalize() noexcept {
 }
 
 namespace {
-struct DoublePrecShadow128 {
-  double val;
-  // uint64_t padding[1];
-};
-
-struct DoublePrecShadow256 {
-  __float128 val;
-  // uint64_t padding[2];
-};
 
 template <size_t VectorSize, typename DoublePrecShadow>
 bool FCmp(FCmpOpcode Opcode, DoublePrecShadow **LeftShadow,
@@ -95,7 +88,7 @@ void FCmpCheckFail(FPType a, DoublePrecShadow **sa, FPType b,
   std::cout << "}" << std::endl;
 
   utils::DumpStacktrace();
-  if (RuntimeFlags::ExitOnError)
+  if (InterflopContext::getInstance().Flags().getExitOnError())
     exit(1);
 }
 
@@ -109,7 +102,6 @@ bool CheckInternal(ScalarVT Operand, DoublePrecShadow *Shadow) {
 
   double AbsoluteError = utils::abs(Operand - Shadow->val);
   double RelativeError = utils::abs((AbsoluteError / Shadow->val) * 100);
-
   return AbsoluteError >= MaxAbsoluteError || RelativeError >= MaxRelativeError;
 }
 
@@ -237,11 +229,13 @@ bool InterflopBackend<FPType>::Check(FPType Operand,
 
   if (Res) {
     // We may want to store additional information
-    if (not RuntimeFlags::DisableWarning) {
-      InterflopContext::getInstance().getStacktraceRecorder().Record();
+    auto &Context = InterflopContext::getInstance();
+    Context.getStacktraceRecorder().Record();
+    if (Context.Flags().getWarningEnabled()) {
+
       CheckFail<VectorSize>(Operand, Shadow);
     }
-    if (RuntimeFlags::ExitOnError)
+    if (Context.Flags().getExitOnError())
       exit(1);
   }
   return Res;
@@ -270,12 +264,13 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
   // We expect both comparison to be equal, else we emit a warning
   if (Value != Res) {
     // We may want to store additional information
-    if (not RuntimeFlags::DisableWarning) {
-      InterflopContext::getInstance().getStacktraceRecorder().Record();
+    auto &Context = InterflopContext::getInstance();
+    Context.getStacktraceRecorder().Record();
+    if (Context.Flags().getWarningEnabled()) {
       FCmpCheckFail<VectorSize>(LeftOperand, LeftShadow, RightOperand,
                                 RightShadow);
     }
-    if (RuntimeFlags::ExitOnError)
+    if (Context.Flags().getExitOnError())
       exit(1);
   }
   // We return the shadow comparison result to be able to correctly branch

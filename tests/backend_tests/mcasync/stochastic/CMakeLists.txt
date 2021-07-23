@@ -5,7 +5,7 @@ target_link_libraries(
     StochasticTest
     gtest_main
     interflop-mcasync
-    interflop-dummy-utils
+    interflop-dummy-core
 )
 
 include(GoogleTest)

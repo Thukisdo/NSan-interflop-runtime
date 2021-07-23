@@ -4,7 +4,7 @@ CXX = clang++
 SOURCEDIR=../../../..
 CFLAGS = -O3 -I$(SOURCEDIR)/include
 CXXFLAGS = -O3 -I$(SOURCEDIR)/include -std=c++17
-LINK_LIBRARY = -L$(SOURCEDIR)/release -linterflop
+LINK_LIBRARY = -L$(SOURCEDIR)/release/lib -linterflop-mcasync -linterflop-dummy-utils
 
 
 # Select the float type to use for the test

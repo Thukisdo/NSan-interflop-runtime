@@ -34,6 +34,9 @@ typedef double v4double __attribute__((vector_size(32)));
 typedef double v8double __attribute__((vector_size(64)));
 // FIXME : We should handle long double
 
+typedef __int128 int128_t;
+typedef unsigned __int128 uint128_t;
+
 namespace utils {
 
 enum FloatType {
@@ -65,7 +68,7 @@ void PrintStackTrace(uint32_t StackId) noexcept;
 
 // Return an integer between [LowerBound; Upperbound] included
 // By default between [T::min; T::max]
-// FIXME: This is not thread safe and quite slow
+// Thread safe
 template <typename T>
 T rand(const T LowerBound = std::numeric_limits<T>::min(),
        const T UpperBound = std::numeric_limits<T>::max()) {
@@ -75,11 +78,21 @@ T rand(const T LowerBound = std::numeric_limits<T>::min(),
                                 std::uniform_int_distribution<T>,
                                 std::uniform_real_distribution<T>>::type;
   // Implementation dependant, generally quite heavy
-  static std::default_random_engine RandomGenerator(time(nullptr));
+  static thread_local std::default_random_engine RandomGenerator(time(nullptr));
 
   // Lightweight object
   uniform_distribution distribution(LowerBound, UpperBound);
   return distribution(RandomGenerator);
+}
+
+template <>
+inline __uint128_t rand<__uint128_t>(const __uint128_t LowerBound,
+                              const __uint128_t UpperBound) {
+
+  __uint128_t res = rand<uint64_t>();
+  res |= static_cast<__uint128_t>(rand<uint64_t>()) << 64;
+
+  return res % (UpperBound - LowerBound) + LowerBound;
 }
 
 // std::abs and std::isnan do not natively support __float128
@@ -91,11 +104,6 @@ template <typename T> bool isnan(T x) { return std::isnan(x); }
 template <> inline bool isnan(__float128 x) {
   return std::isnan(static_cast<double>(x));
 }
-
-
-
-
-
 
 } // namespace utils
 } // namespace interflop

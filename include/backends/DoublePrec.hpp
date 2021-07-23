@@ -16,3 +16,17 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+
+namespace interflop::doubleprec {
+
+struct DoublePrecShadow128 {
+  double val;
+  // uint64_t padding[1];
+};
+
+struct DoublePrecShadow256 {
+  __float128 val;
+  // uint64_t padding[2];
+};
+
+} // namespace interflop::doubleprec
