@@ -19,5 +19,5 @@ using namespace interflop;
 extern "C"
 void __interflop_init()
 {
-  backend_init();
+  BackendInit();
 }

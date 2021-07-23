@@ -17,6 +17,28 @@ uint32_t __nsan_save_stacktrace();
 // Helper method to allow printing stack location in interflop mdoe
 void __nsan_print_stacktrace(uint32_t StackId);
 
+
+#ifdef DUMMY_NSAN_INTERFACE
+// When testing, we will not link to nsan runtime, so this function will be undefined
+// We declare dummy function to allow compilation
+void __nsan_dump_stacktrace()
+{
+
+}
+
+
+uint32_t __nsan_save_stacktrace()
+{
+  return 0;
+}
+
+
+void __nsan_print_stacktrace(uint32_t StackId)
+{
+  
+}
+#endif
+
 namespace interflop::utils {
 
 [[noreturn]] void unreachable(const char *str) noexcept {

@@ -15,9 +15,12 @@ typedef unsigned __int128 uint128_t;
 
 namespace interflop {
 
-void backend_init() noexcept {
+void BackendInit() noexcept {
   InterflopContext::getInstance().setBackendName("MCA Synchrone");
-  // We will use utils::rand, no need to call srand
+}
+
+void BackendFinalize() noexcept {
+  // Nothing to do
 }
 
 // Shadow struct and helper methods
@@ -372,9 +375,8 @@ bool InterflopBackend<FPType>::Check(FPType Operand,
   } else
     Res = CheckInternal(Operand, Shadow[0]);
   if (Res) {
-    if (not RuntimeFlags::DisableWarning)
-    {
-      InterflopContext::getInstance().getWarningRecorder().Register();
+    if (not RuntimeFlags::DisableWarning) {
+      InterflopContext::getInstance().getStacktraceRecorder().Record();
       CheckFail<VectorSize>(Operand, Shadow);
     }
     if (RuntimeFlags::ExitOnError)
@@ -397,9 +399,8 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
   bool Res = FCmp<VectorSize>(Opcode, LeftShadow, RightShadow);
   // We expect both comparison to be equal, else we print an error
   if (Value != Res) {
-    if (not RuntimeFlags::DisableWarning)
-    {
-      InterflopContext::getInstance().getWarningRecorder().Register();
+    if (not RuntimeFlags::DisableWarning) {
+      InterflopContext::getInstance().getStacktraceRecorder().Record();
       FCmpCheckFail<VectorSize>(LeftOperand, LeftShadow, RightOperand,
                                 RightShadow);
     }

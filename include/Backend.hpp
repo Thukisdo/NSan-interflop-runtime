@@ -12,6 +12,8 @@
 #include "OpaqueShadow.hpp"
 #include "Utils.hpp"
 #include <iostream>
+#include <mutex>
+#include <thread>
 #include <unordered_map>
 
 namespace interflop {
@@ -32,14 +34,20 @@ enum FCmpOpcode {
 enum class InterflopBackends { DoublePrecision, MCASynchrone };
 
 // Guaranteed to be called before the first call to the backend.
-void backend_init() noexcept;
-void backend_finalize() noexcept;
+void BackendInit() noexcept;
+void BackendFinalize() noexcept;
 
-class WarningRecorder {
+// Helper class for recording warnings.
+// Will record a stacktrace when a warning is emited, and print every
+// recorded stacktrace at the end of the program. This enable precisely locating
+// fp errors.
+// Note: print will be called by the context
+class StacktraceRecorder {
 public:
-  enum class WarningType { ValueCheck, FCmp };
 
+  // Output to every stacktrace recorded to the given stream
   void print(std::string const &BackendName, std::ostream &out) {
+    std::scoped_lock<std::mutex> lock(Mutex);
     out << "Interflop results:"
         << "\n";
     out << "Backend: " << BackendName << "\n";
@@ -53,10 +61,16 @@ public:
     }
   }
 
-  void Register() { Map[utils::SaveStackTrace()]++; }
+  // Record a warning, automatically saving the stacktrace
+  // This method is thread safe.
+  void Record() {
+    std::scoped_lock<std::mutex> lock(Mutex);
+    Map[utils::SaveStackTrace()]++;
+  }
 
 private:
   std::unordered_map<uint32_t, int> Map;
+  std::mutex Mutex;
 };
 
 // Base class for all backends

@@ -27,22 +27,28 @@ public:
     return singleton;
   }
 
+  InterflopContext(InterflopContext const& other) = delete;
+
   // Since The context is a global object, it will be destroyed when the program
   // ends
   ~InterflopContext() {
+    // No need to print warning's stacktrace if they are disabled
     if (not RuntimeFlags::DisableWarning)
-      WRecord.print(BackendName, std::cout);
+      WarningRecorder.print(BackendName, std::cout);
+    BackendFinalize();  
   }
 
-  WarningRecorder &getWarningRecorder() { return WRecord; }
+  StacktraceRecorder &getStacktraceRecorder() { return WarningRecorder; }
 
   std::string const &getBackendName() const;
   void setBackendName(std::string const &value) { BackendName = value; }
 
 private:
-  std::string BackendName{"UndefinedBackend"};
 
-  WarningRecorder WRecord;
+  InterflopContext() = default;
+  std::string BackendName{"Undefined_Backend"};
+
+  StacktraceRecorder WarningRecorder;
 };
 
 } // namespace interflop

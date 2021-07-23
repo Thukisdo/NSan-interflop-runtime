@@ -13,8 +13,12 @@
 
 namespace interflop {
 
-void backend_init() noexcept {
+void BackendInit() noexcept {
   InterflopContext::getInstance().setBackendName("DoublePrec");
+}
+
+void BackendFinalize() noexcept {
+  // Nothing to do
 }
 
 namespace {
@@ -234,7 +238,7 @@ bool InterflopBackend<FPType>::Check(FPType Operand,
   if (Res) {
     // We may want to store additional information
     if (not RuntimeFlags::DisableWarning) {
-      InterflopContext::getInstance().getWarningRecorder().Register();
+      InterflopContext::getInstance().getStacktraceRecorder().Record();
       CheckFail<VectorSize>(Operand, Shadow);
     }
     if (RuntimeFlags::ExitOnError)
@@ -267,7 +271,7 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
   if (Value != Res) {
     // We may want to store additional information
     if (not RuntimeFlags::DisableWarning) {
-      InterflopContext::getInstance().getWarningRecorder().Register();
+      InterflopContext::getInstance().getStacktraceRecorder().Record();
       FCmpCheckFail<VectorSize>(LeftOperand, LeftShadow, RightOperand,
                                 RightShadow);
     }
