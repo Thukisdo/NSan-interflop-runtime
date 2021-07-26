@@ -9,10 +9,13 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx -std=c++17")
 SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -g")
 SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3")
 
+# Automatically generate the interface
+# Will output to buildir, source will not be modified
 add_custom_command(
   OUTPUT Interface.cpp
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/interfaceGenerator.py
-  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/src/interfaceGenerator.py
+  # Add dependency on the script to prevent multiple builds
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/InterfaceGenerator.py
+  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/src/InterfaceGenerator.py
   VERBATIM
 )
 
