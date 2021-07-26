@@ -96,4 +96,27 @@ template <> struct FPTypeInfo<v8double> {
   static constexpr utils::FloatType Type = utils::kV8Double;
   static constexpr size_t VectorSize = 8;
 };
+
+template <> struct FPTypeInfo<long double> {
+  using ShadowType = OpaqueShadow256;
+  using ScalarType = long double;
+  static constexpr utils::FloatType Type = utils::klDouble;
+  static constexpr size_t VectorSize = 1;
+};
+
+template <> struct FPTypeInfo<v2ldouble> {
+  using ShadowType = OpaqueShadow256;
+  using ScalarType = long double;
+  static constexpr utils::FloatType Type = utils::kV2lDouble;
+  static constexpr size_t VectorSize = 2;
+};
+
+template <> struct FPTypeInfo<v4ldouble> {
+  using ShadowType = OpaqueShadow256;
+  using ScalarType = long double;
+  static constexpr utils::FloatType Type = utils::kV4lDouble;
+  static constexpr size_t VectorSize = 4;
+};
+
+
 } // namespace interflop

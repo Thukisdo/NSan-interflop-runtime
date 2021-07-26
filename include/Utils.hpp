@@ -32,7 +32,9 @@ typedef float v16float __attribute__((vector_size(64)));
 typedef double v2double __attribute__((vector_size(16)));
 typedef double v4double __attribute__((vector_size(32)));
 typedef double v8double __attribute__((vector_size(64)));
-// FIXME : We should handle long double
+typedef long double v2ldouble __attribute__((vector_size(16)));
+typedef long double v4ldouble __attribute__((vector_size(32)));
+typedef long double v8ldouble __attribute__((vector_size(64)));
 
 typedef __int128 int128_t;
 typedef unsigned __int128 uint128_t;
@@ -49,6 +51,9 @@ enum FloatType {
   kV2Double,
   kV4Double,
   kV8Double,
+  klDouble,
+  kV2lDouble,
+  kV4lDouble,
   kNumFloatType
 };
 

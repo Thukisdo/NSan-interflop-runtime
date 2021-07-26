@@ -399,6 +399,16 @@ void InterflopBackend<FPType>::DownCast(FPType Operand,
 }
 
 template <typename FPType>
+void InterflopBackend<FPType>::DownCast(FPType Operand,
+                                        ShadowType **OperandShadow,
+                                        OpaqueShadow256 **Res) {
+  auto Shadow = reinterpret_cast<MCASyncShadow<FPType> **>(OperandShadow);
+  auto Destination = reinterpret_cast<MCASyncShadow256 **>(Res);
+
+  Cast<VectorSize>(Operand, Shadow, Destination);
+}
+
+template <typename FPType>
 void InterflopBackend<FPType>::UpCast(FPType Operand,
                                       ShadowType **OperandShadow,
                                       OpaqueShadow256 **Res) {
@@ -450,6 +460,5 @@ template class InterflopBackend<v8float>;
 template class InterflopBackend<double>;
 template class InterflopBackend<v2double>;
 template class InterflopBackend<v4double>;
-template class InterflopBackend<v8double>;
 
 } // namespace interflop

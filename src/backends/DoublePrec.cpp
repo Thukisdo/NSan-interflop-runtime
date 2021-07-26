@@ -277,15 +277,24 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
   return Res;
 }
 
-// An issue arise regarding the destination type
-// We could use a template, but that would break polymorphism
-// Instead, we declare two function for either up/down casting
 template <typename FPType>
 void InterflopBackend<FPType>::DownCast(FPType Operand,
                                         ShadowType **ShadowOperand,
                                         OpaqueShadow128 **Res) {
   auto Shadow = reinterpret_cast<DoublePrecShadow<FPType> **>(ShadowOperand);
   auto ResShadow = reinterpret_cast<DoublePrecShadow128 **>(Res);
+
+  for (int I = 0; I < VectorSize; I++) {
+    ResShadow[I]->val = Shadow[I]->val;
+  }
+}
+
+template <typename FPType>
+void InterflopBackend<FPType>::DownCast(FPType Operand,
+                                        ShadowType **ShadowOperand,
+                                        OpaqueShadow256 **Res) {
+  auto Shadow = reinterpret_cast<DoublePrecShadow<FPType> **>(ShadowOperand);
+  auto ResShadow = reinterpret_cast<DoublePrecShadow256 **>(Res);
 
   for (int I = 0; I < VectorSize; I++) {
     ResShadow[I]->val = Shadow[I]->val;
@@ -337,6 +346,5 @@ template class InterflopBackend<v8float>;
 template class InterflopBackend<double>;
 template class InterflopBackend<v2double>;
 template class InterflopBackend<v4double>;
-template class InterflopBackend<v8double>;
 
 } // namespace interflop

@@ -92,6 +92,7 @@ public:
                  ShadowType **RightShadowOperand, bool Value);
 
   void DownCast(FPType a, ShadowType **sa, OpaqueShadow128 **res);
+  void DownCast(FPType a, ShadowType **sa, OpaqueShadow256 **res);
   void UpCast(FPType a, ShadowType **sa, OpaqueShadow256 **res);
 
   void MakeShadow(FPType a, ShadowType **res);
