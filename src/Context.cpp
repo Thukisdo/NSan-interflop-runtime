@@ -18,7 +18,6 @@ InterflopContext &InterflopContext::getInstance() {
 }
 
 InterflopContext::~InterflopContext() {
-  // No need to print warning's stacktrace if they are disabled
   WarningRecorder.print(BackendName, std::cout);
   BackendFinalize();
 }

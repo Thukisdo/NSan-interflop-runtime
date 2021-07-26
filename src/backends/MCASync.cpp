@@ -79,9 +79,9 @@ float StochasticRound(double x) {
 double StochasticRound(__float128 x) {
   static Float128 oneF128 = 1.0;
   static Float128 eps_F64 =
-      std::nextafter((double)std::nextafter(0.0, 1.0), 0.0);
-  uint128_t RandomBits = utils::rand<uint64_t>();
-  RandomBits |= ((uint128_t)utils::rand<uint64_t>()) << 64;
+      std::nextafter((double)std::nextafter(0.0, 1.0), 0.0);    
+  uint128_t RandomBits = utils::rand<uint128_t>(0, MAX_UINT128);
+
   // subnormals are round with float-arithmetic for uniform stoch perturbation
   // (Magic)
   if (utils::abs(x) < std::numeric_limits<double>::min()) {
