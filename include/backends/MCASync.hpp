@@ -23,12 +23,14 @@
 
 namespace interflop::mcasync {
 
-struct MCASyncShadow128 {
+// We use 4x shadow memory, so our shadows should be either 128 or 256 bytes for
+// large
+struct MCASyncShadow {
   float val[3];
   uint32_t padding[1];
 
   // helper methods for printing / acessing one of the shadow float
-  friend std::ostream &operator<<(std::ostream &os, MCASyncShadow128 const &s);
+  friend std::ostream &operator<<(std::ostream &os, MCASyncShadow const &s);
 
   // inline attribute is needed to prevent multiple definition on top of the
   // obvious performance reason
@@ -37,12 +39,14 @@ struct MCASyncShadow128 {
     return val[index];
   }
 };
-struct MCASyncShadow256 {
+
+struct MCASyncLargeShadow {
   double val[3];
   uint64_t padding[1];
 
   // helper methods for printing / acessing one of the shadow double
-  friend std::ostream &operator<<(std::ostream &os, MCASyncShadow256 const &s);
+  friend std::ostream &operator<<(std::ostream &os,
+                                  MCASyncLargeShadow const &s);
 
   // inline attribute is needed to prevent multiple definition on top of the
   // obvious performance reason
@@ -51,6 +55,9 @@ struct MCASyncShadow256 {
     return val[index];
   }
 };
+
+static_assert(sizeof(MCASyncShadow) == 16, "shadow size is wrong");
+static_assert(sizeof(MCASyncLargeShadow) == 32, "Large shadow size is wrong");
 
 // Adapted from a Julia rounding code
 // Voluntary making it avaible externally for testing purposes

@@ -29,7 +29,7 @@ uint32_t __nsan_save_stacktrace() { return 0; }
 
 void __nsan_print_stacktrace(uint32_t StackId) {}
 
-size_t __nsan_get_shadowscale() {}
+size_t __nsan_get_shadowscale() {return 2;}
 
 #endif
 

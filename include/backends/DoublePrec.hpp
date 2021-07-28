@@ -19,14 +19,16 @@
 
 namespace interflop::doubleprec {
 
-struct DoublePrecShadow128 {
+// We use 2x shadow memory, so our shadows should be either 64 or 128 bytes for large
+struct DoublePrecShadow {
   double val;
-  // uint64_t padding[1];
 };
 
-struct DoublePrecShadow256 {
+struct DoublePrecLargeShadow {
   __float128 val;
-  // uint64_t padding[2];
 };
+
+static_assert(sizeof(DoublePrecShadow) == 8, "shadow size is wrong");
+static_assert(sizeof(DoublePrecLargeShadow) == 16, "Large shadow size is wrong");
 
 } // namespace interflop::doubleprec

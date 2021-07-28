@@ -38,4 +38,7 @@ void StacktraceRecorder::print(std::string const &BackendName,
 using namespace interflop;
 // Warning : since we're in a module constructor, some objects may still be
 // uninitialized, like std::cout
-extern "C" void __interflop_init() { InterflopContext::getInstance().Init(); }
+extern "C" void __interflop_init() { 
+  BackendInit();
+  InterflopContext::getInstance().Init(); 
+}

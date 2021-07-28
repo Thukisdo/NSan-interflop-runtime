@@ -32,6 +32,8 @@ enum FCmpOpcode {
 };
 
 // Guaranteed to be called before the first call to the backend.
+// std::cout and other std::streams should not be used in those functions
+// as they are called before std:: initialization
 void BackendInit() noexcept;
 void BackendFinalize() noexcept;
 
@@ -59,6 +61,8 @@ private:
 // Base class for all backends
 // Should be derived accordingly to define multiple tools
 // The context is reponsible for allowing them at startup
+// FIXME: With c++20, we should use concepts for proper template usage
+// maybe something like Shadowable<FPType> ?
 template <typename FPType> class InterflopBackend {
 public:
   using ScalarVT = typename FPTypeInfo<FPType>::ScalarType;
@@ -93,8 +97,8 @@ public:
 
   void MakeShadow(FPType a, ShadowType **res);
 
-  void CastToFloat(FPType a, ShadowType **sa, OpaqueShadow128 **res);
-  void CastToDouble(FPType a, ShadowType **sa, OpaqueShadow256 **res);
-  void CastToLongdouble(FPType a, ShadowType **sa, OpaqueShadow256 **res);
+  void CastToFloat(FPType a, ShadowType **sa, OpaqueShadow **res);
+  void CastToDouble(FPType a, ShadowType **sa, OpaqueLargeShadow **res);
+  void CastToLongdouble(FPType a, ShadowType **sa, OpaqueLargeShadow **res);
 };
 } // namespace interflop

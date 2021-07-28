@@ -4,7 +4,7 @@
 
 FPTypes = ["float", "double"] # "longdouble"
 MaxVectorSize = {'float': 8, 'double': 4, 'longdouble': 2}
-ShadowType = ["OpaqueShadow128", "OpaqueShadow256"]
+ShadowType = ["OpaqueShadow", "OpaqueLargeShadow"]
 
 
 def GetVectorPrefix(VSize=1):
@@ -22,7 +22,7 @@ def FPTypeToVector(Type: str, VSize=1):
 
 
 def FPTypeToShadow(Type: str, VSize=1):
-    ShadowType = "OpaqueShadow128" if Type == "float" else "OpaqueShadow256"
+    ShadowType = "OpaqueShadow" if Type == "float" else "OpaqueLargeShadow"
     return GetVectorPrefix(VSize) + ShadowType + ("*" if VSize == 1 else "")
 
 

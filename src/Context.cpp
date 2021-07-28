@@ -17,11 +17,16 @@ InterflopContext &InterflopContext::getInstance() {
   return singleton;
 }
 
-void InterflopContext::Init() { BackendInit(); }
+void InterflopContext::Init() {
+  // We should perfom some initialization here
+  // This guard is required
+  Initialized = true;
+}
 
 InterflopContext::~InterflopContext() {
   // If initialization failed, std::cout might not be initialized correctly so
-  // we shouldn't print anything
+  // we shouldn't print anything, or replace StacktraceRecorder::print() to use
+  // printf instead
   if (Initialized)
     WarningRecorder.print(BackendName, std::cout);
   BackendFinalize();
