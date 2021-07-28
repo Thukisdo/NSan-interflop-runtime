@@ -10,7 +10,7 @@ SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -g")
 SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3")
 
 # Automatically generate the interface
-# Will output to buildir, source will not be modified
+# Will output to buildir, source dir will not be modified
 add_custom_command(
   OUTPUT Interface.cpp
   # Add dependency on the script to prevent multiple builds
@@ -20,7 +20,7 @@ add_custom_command(
 )
 
 
-
+# Will automatically call the custom command because of the dependency on Interface.cpp
 add_library(interflop-interface STATIC "Interface.cpp")
 target_include_directories(interflop-interface PUBLIC include)
 

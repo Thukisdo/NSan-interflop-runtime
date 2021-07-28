@@ -20,11 +20,11 @@ namespace interflop {
 
 class InterflopContext {
 public:
-
   static InterflopContext &getInstance();
   InterflopContext(InterflopContext const &other) = delete;
   InterflopContext &operator=(InterflopContext const &other) = delete;
 
+  void Init();
   // Since The context is a global object, it will be destroyed when the program
   // ends
   ~InterflopContext();
@@ -38,6 +38,7 @@ public:
 private:
   InterflopContext() = default;
 
+  bool Initialized{false};
   std::string BackendName{"Undefined_Backend"};
   RuntimeFlags RTFlags;
   StacktraceRecorder WarningRecorder;

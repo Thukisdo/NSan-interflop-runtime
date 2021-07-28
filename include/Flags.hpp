@@ -38,9 +38,10 @@ private:
   // If true, the program will exit on the first error.
   bool ExitOnError = false;
   bool PrintStatsOnExit = true;
-  bool WarningEnabled = false;
+  bool WarningEnabled = true;
   // Maximum number of warnings before exiting.
   // 0 means no limit.
+  // FIXME : not used yet 
   size_t WarningLimit = 20;
   bool Verbose = false;
 };

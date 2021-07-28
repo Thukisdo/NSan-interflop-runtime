@@ -126,7 +126,7 @@ def GenerateFCmpCheck(Type: str, VSize: int, File):
 
     for Op in FCmpOps:
         File.write(
-            f"extern \"C\" int {Prefix}_{Op}({CType} a, {ShadowType} sa, {CType} b, {ShadowType} sb)")
+            f"extern \"C\" int {Prefix}_fcmp_{Op}({CType} a, {ShadowType} sa, {CType} b, {ShadowType} sb)")
         File.write(" {\n")
         File.write(f"\tBackend<{CType}> Backend;\n")
         if VSize == 1:
@@ -142,6 +142,7 @@ def GenerateCast(Type: str, VSize: int, File=None):
     CType = FPTypeToVector(Type, VSize)
     ShadowType = FPTypeToShadow(Type, VSize)
     Prefix = FPPrefix(Type, VSize)
+    Casts = {"float": "CastToFloat", "double": "CastToDouble", "longdouble": "CastToLongdouble"}
 
     for DestType in FPTypes:
         if DestType == Type:
@@ -153,10 +154,10 @@ def GenerateCast(Type: str, VSize: int, File=None):
         File.write(f"\tBackend<{CType}> Backend;\n")
         if VSize == 1:
             File.write(
-                f"\tBackend.{Cast}(a, &sa, &res);\n")
+                f"\tBackend.{Casts[DestType]}(a, &sa, &res);\n")
         else:
             File.write(
-                f"\tBackend.{Cast}(a, sa, res);\n")
+                f"\tBackend.{Casts[DestType]}(a, sa, res);\n")
         File.write("}\n\n")        
 
 

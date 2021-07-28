@@ -41,10 +41,9 @@ void BackendFinalize() noexcept;
 // fp errors.
 class StacktraceRecorder {
 public:
-
   // Output to every stacktrace recorded to the given stream
   void print(std::string const &BackendName, std::ostream &out);
-  
+
   // Record a warning, automatically saving the stacktrace
   // This method is thread safe.
   void Record() {
@@ -66,8 +65,12 @@ public:
   using ShadowType = typename FPTypeInfo<FPType>::ShadowType;
   static constexpr size_t VectorSize = FPTypeInfo<FPType>::VectorSize;
 
+  // Should return -a and res = -sa
+  FPType Neg(FPType a, ShadowType **sa, ShadowType **res);
+
   // Binary operator overload
-  // Should perform the operation on both the shadow and the original value
+  // Cauton: Should perform the operation on both the shadow and the original
+  // values
   FPType Add(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
              ShadowType **res);
 
@@ -79,11 +82,8 @@ public:
   FPType Div(FPType a, ShadowType **sa, FPType b, ShadowType **sb,
              ShadowType **res);
 
-  // Should return -a and res = -sa
-  FPType Neg(FPType a, ShadowType **sa, ShadowType **res);
-
-  // This function should return true if the check raised an error
-  // (i.e. The shadow value is not equal to the value)
+  // Check functions should return true if the check raised an error
+  // (i.e. The shadow value is not equal to the value or the comparisons failed)
   // This will cause the programm to resume computation from the original value
   bool Check(FPType a, ShadowType **sa);
 
@@ -91,10 +91,10 @@ public:
                  ShadowType **LeftShadowOperand, FPType RightOperand,
                  ShadowType **RightShadowOperand, bool Value);
 
-  void DownCast(FPType a, ShadowType **sa, OpaqueShadow128 **res);
-  void DownCast(FPType a, ShadowType **sa, OpaqueShadow256 **res);
-  void UpCast(FPType a, ShadowType **sa, OpaqueShadow256 **res);
-
   void MakeShadow(FPType a, ShadowType **res);
+
+  void CastToFloat(FPType a, ShadowType **sa, OpaqueShadow128 **res);
+  void CastToDouble(FPType a, ShadowType **sa, OpaqueShadow256 **res);
+  void CastToLongdouble(FPType a, ShadowType **sa, OpaqueShadow256 **res);
 };
 } // namespace interflop

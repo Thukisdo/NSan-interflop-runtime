@@ -27,7 +27,9 @@ float CalcSampleRatio(float X) {
   Sample(X, Buffer, Counts);
   
   if (Counts.size() != 2)
+  {
     throw std::runtime_error("Unexpected number of samples");
+  }
 
   auto It = Counts.begin();
   float N1 = It->second;
@@ -85,7 +87,7 @@ TEST(MCASync, RoundNan) {
 #if FLT_HAS_SUBNORM
 
 TEST(MCASync, RoundSubnormal) {
-  uint32_t bytes = 0x7FFFFF;
+  uint32_t bytes = 0x7FF0FF;
   float subnormal = *(float *)&bytes;
 
   EXPECT_NEAR(CalcSampleRatio(subnormal), 0.5f, 0.01f);

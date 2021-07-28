@@ -17,8 +17,13 @@ InterflopContext &InterflopContext::getInstance() {
   return singleton;
 }
 
+void InterflopContext::Init() { BackendInit(); }
+
 InterflopContext::~InterflopContext() {
-  WarningRecorder.print(BackendName, std::cout);
+  // If initialization failed, std::cout might not be initialized correctly so
+  // we shouldn't print anything
+  if (Initialized)
+    WarningRecorder.print(BackendName, std::cout);
   BackendFinalize();
 }
 

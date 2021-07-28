@@ -17,6 +17,12 @@ using namespace doubleprec;
 
 void BackendInit() noexcept {
   InterflopContext::getInstance().setBackendName("DoublePrec");
+  if (utils::GetNSanShadowScale() != 2)
+  {
+    fprintf(stderr, "Warning: [DoublePrec] backend requires 2x shadow\n");
+    fprintf(stderr, "Recompile using flags -mllvm -nsan-shadowscale=2\n");
+    exit(1);
+  }
 }
 
 void BackendFinalize() noexcept {
@@ -25,6 +31,8 @@ void BackendFinalize() noexcept {
 
 namespace {
 
+// Helper method to perform FP comparisons
+// FIXME : Doesn't raise the same errors as the original code
 template <size_t VectorSize, typename DoublePrecShadow>
 bool FCmp(FCmpOpcode Opcode, DoublePrecShadow **LeftShadow,
           DoublePrecShadow **RightShadow) {
@@ -37,12 +45,11 @@ bool FCmp(FCmpOpcode Opcode, DoublePrecShadow **LeftShadow,
     auto RightOp = RightShadow[I]->val;
 
     // Handle unordered comparisons
-    if (Opcode < UnorderedFCmp &&
+    if (Opcode > UnorderedFCmp &&
         (utils::isnan(LeftOp) || utils::isnan(RightOp)))
       continue; // NaN <=> NaN is always true, no need to go further
 
     // Handle (ordered) comparisons
-    // FIXME : Doesn't raise the same errors as the original code
     if (Opcode == FCmp_oeq || Opcode == FCmp_ueq)
       Res = Res && (LeftOp == RightOp);
     else if (Opcode == FCmp_one || Opcode == FCmp_une)
@@ -60,11 +67,8 @@ bool FCmp(FCmpOpcode Opcode, DoublePrecShadow **LeftShadow,
 template <size_t VectorSize, typename FPType, typename DoublePrecShadow>
 void FCmpCheckFail(FPType a, DoublePrecShadow **sa, FPType b,
                    DoublePrecShadow **sb) {
+
   std::cout << "Shadow results depends on precision" << std::endl;
-
-  // Printing boilerplate code
-  // We want to print the values and their shadow counterparts
-
   std::cout << "\tValue  a: { ";
 
   // Avoid acessing a[I] if we're not working on vectors
@@ -108,11 +112,9 @@ bool CheckInternal(ScalarVT Operand, DoublePrecShadow *Shadow) {
 template <size_t VectorSize, typename FPType, typename DoublePrecShadow>
 void CheckFail(FPType Operand, DoublePrecShadow **Shadow) {
 
-  // Boilerplate printing code
-
   std::cout << "\033[1;31m";
-  std::cout << "[MCASync] Inconsistent shadow result :" << std::setprecision(20)
-            << std::endl;
+  std::cout << "[DoublePrec] Inconsistent shadow result :"
+            << std::setprecision(20) << std::endl;
 
   std::cout << "\tNative Value: ";
   // We shall not acess Operand[I] if we're not working on vectors
@@ -127,6 +129,15 @@ void CheckFail(FPType Operand, DoublePrecShadow **Shadow) {
   std::cout << "\033[0m";
 }
 
+template <size_t VectorSize, typename FPType, typename ShadowType,
+          typename DestType>
+void CastInternal(FPType a, ShadowType **sa, DestType **sb) {
+
+  for (int I = 0; I < VectorSize; I++) {
+    sb[I]->val = sa[I]->val;
+  }
+}
+
 } // namespace
 
 // Will either be MCAShadow128 or MCAShadow64 depending on FPType
@@ -136,8 +147,21 @@ using DoublePrecShadow = typename std::conditional<
                  OpaqueShadow128>::value,
     DoublePrecShadow128, DoublePrecShadow256>::type;
 
+// Unary operator overload
+template <typename FPType>
+FPType InterflopBackend<FPType>::Neg(FPType Operand, ShadowType **ShadowOperand,
+                                     ShadowType **Res) {
+  auto Shadow = reinterpret_cast<DoublePrecShadow<FPType> **>(ShadowOperand);
+  auto ResShadow = reinterpret_cast<DoublePrecShadow<FPType> **>(Res);
+
+  for (int I = 0; I < VectorSize; I++) {
+    ResShadow[I]->val = -Shadow[I]->val;
+  }
+  return -Operand;
+}
+
 // Binary operator overload
-// We perform the same operation in the shadow space
+// Replicate
 template <typename FPType>
 FPType InterflopBackend<FPType>::Add(FPType LeftOperand,
                                      ShadowType **LeftShadowOperand,
@@ -277,54 +301,6 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
   return Res;
 }
 
-template <typename FPType>
-void InterflopBackend<FPType>::DownCast(FPType Operand,
-                                        ShadowType **ShadowOperand,
-                                        OpaqueShadow128 **Res) {
-  auto Shadow = reinterpret_cast<DoublePrecShadow<FPType> **>(ShadowOperand);
-  auto ResShadow = reinterpret_cast<DoublePrecShadow128 **>(Res);
-
-  for (int I = 0; I < VectorSize; I++) {
-    ResShadow[I]->val = Shadow[I]->val;
-  }
-}
-
-template <typename FPType>
-void InterflopBackend<FPType>::DownCast(FPType Operand,
-                                        ShadowType **ShadowOperand,
-                                        OpaqueShadow256 **Res) {
-  auto Shadow = reinterpret_cast<DoublePrecShadow<FPType> **>(ShadowOperand);
-  auto ResShadow = reinterpret_cast<DoublePrecShadow256 **>(Res);
-
-  for (int I = 0; I < VectorSize; I++) {
-    ResShadow[I]->val = Shadow[I]->val;
-  }
-}
-
-template <typename FPType>
-void InterflopBackend<FPType>::UpCast(FPType Operand,
-                                      ShadowType **ShadowOperand,
-                                      OpaqueShadow256 **Res) {
-  auto Shadow = reinterpret_cast<DoublePrecShadow<FPType> **>(ShadowOperand);
-  auto ResShadow = reinterpret_cast<DoublePrecShadow256 **>(Res);
-
-  for (int I = 0; I < VectorSize; I++) {
-    ResShadow[I]->val = Shadow[I]->val;
-  }
-}
-
-template <typename FPType>
-FPType InterflopBackend<FPType>::Neg(FPType Operand, ShadowType **ShadowOperand,
-                                     ShadowType **Res) {
-  auto Shadow = reinterpret_cast<DoublePrecShadow<FPType> **>(ShadowOperand);
-  auto ResShadow = reinterpret_cast<DoublePrecShadow<FPType> **>(Res);
-
-  for (int I = 0; I < VectorSize; I++) {
-    ResShadow[I]->val = -Shadow[I]->val;
-  }
-  return -Operand;
-}
-
 // We simply extend the original shadow to double precision
 template <typename FPType>
 void InterflopBackend<FPType>::MakeShadow(FPType Operand, ShadowType **Res) {
@@ -339,6 +315,38 @@ void InterflopBackend<FPType>::MakeShadow(FPType Operand, ShadowType **Res) {
   }
 }
 
+template <typename FPType>
+void InterflopBackend<FPType>::CastToFloat(FPType Operand,
+                                           ShadowType **ShadowOperand,
+                                           OpaqueShadow128 **Res) {
+  auto Shadow = reinterpret_cast<DoublePrecShadow<FPType> **>(ShadowOperand);
+  auto ResShadow = reinterpret_cast<DoublePrecShadow128 **>(Res);
+
+  CastInternal<VectorSize>(Operand, Shadow, ResShadow);
+}
+
+template <typename FPType>
+void InterflopBackend<FPType>::CastToDouble(FPType Operand,
+                                            ShadowType **ShadowOperand,
+                                            OpaqueShadow256 **Res) {
+  auto Shadow = reinterpret_cast<DoublePrecShadow<FPType> **>(ShadowOperand);
+  auto ResShadow = reinterpret_cast<DoublePrecShadow256 **>(Res);
+
+  CastInternal<VectorSize>(Operand, Shadow, ResShadow);
+}
+
+template <typename FPType>
+void InterflopBackend<FPType>::CastToLongdouble(FPType Operand,
+                                                ShadowType **ShadowOperand,
+                                                OpaqueShadow256 **Res) {
+  auto Shadow = reinterpret_cast<DoublePrecShadow<FPType> **>(ShadowOperand);
+  auto ResShadow = reinterpret_cast<DoublePrecShadow256 **>(Res);
+
+  CastInternal<VectorSize>(Operand, Shadow, ResShadow);
+}
+
+// Explicit instanciation
+// Required since the interface has no access to the template definition
 template class InterflopBackend<float>;
 template class InterflopBackend<v2float>;
 template class InterflopBackend<v4float>;
@@ -346,5 +354,7 @@ template class InterflopBackend<v8float>;
 template class InterflopBackend<double>;
 template class InterflopBackend<v2double>;
 template class InterflopBackend<v4double>;
+template class InterflopBackend<long double>;
+template class InterflopBackend<v2ldouble>;
 
 } // namespace interflop

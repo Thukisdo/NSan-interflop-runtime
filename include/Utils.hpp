@@ -40,7 +40,8 @@ typedef __int128 int128_t;
 typedef unsigned __int128 uint128_t;
 
 // Not defined in std::
-// FIXME: we should probably define std::numeric_limits<uint128_t> for a coherent c++ syntax
+// FIXME: we should probably define std::numeric_limits<uint128_t> for a
+// coherent c++ syntax
 constexpr uint128_t MAX_UINT128 = ~((uint128_t)0);
 
 namespace utils {
@@ -100,7 +101,7 @@ T rand(const T LowerBound = std::numeric_limits<T>::min(),
 // By combining multiple uint64_t
 template <>
 inline __uint128_t rand<__uint128_t>(const __uint128_t LowerBound,
-                              const __uint128_t UpperBound) {
+                                     const __uint128_t UpperBound) {
 
   __uint128_t res = rand<uint64_t>();
   res |= static_cast<__uint128_t>(rand<uint64_t>()) << 64;
@@ -117,6 +118,8 @@ template <typename T> bool isnan(T x) { return std::isnan(x); }
 template <> inline bool isnan(__float128 x) {
   return std::isnan(static_cast<double>(x));
 }
+
+size_t GetNSanShadowScale();
 
 } // namespace utils
 } // namespace interflop

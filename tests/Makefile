@@ -3,14 +3,15 @@
 CC = ../../build/bin/clang
 CXX = ../../build/bin/clang++
 CFLAGS = -O3
-CXXFLAGS = -O3
-INSTRUMENTATION_FLAGS = -fno-omit-frame-pointer -fsanitize=numerical -mllvm --nsan-interflop -mllvm --nsan-shadow-type-mapping=ijj
+CXXFLAGS = -O0 -g
+INSTRUMENTATION_FLAGS = -fno-omit-frame-pointer -fsanitize=numerical -mllvm -nsan-interflop -mllvm -nsan-shadowscale=4
 LINK_LIBRARY = -L../release/lib  -linterflop-interface -linterflop-doubleprec -linterflop-core
+TEST=nsan_tests/cadna_ex2.cc
 
-test.o: large_array_fill.cpp
-	$(CXX) $(CXXFLAGS) $(INSTRUMENTATION_FLAGS) -o test.o nsan_tests/verificarlo_case4.cc $(LINK_LIBRARY)
+test.o: 
+	$(CXX) $(CXXFLAGS) $(INSTRUMENTATION_FLAGS) -o test.o $(TEST) $(LINK_LIBRARY)
 
 clean :
-	rm -f *.o
+	rm -f test.o
 	rm -f *.ll
 	rm -f *.out

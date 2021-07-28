@@ -59,18 +59,20 @@ float StochasticRound(double x) {
   static const Float64 oneF64 = 1.0;
   static const Float64 eps_F32 =
       std::nextafter((double)std::nextafter(0.0f, 1.0f), 0.0);
+
   uint64_t RandomBits = utils::rand<uint64_t>();
   // subnormals are rounded with float-arithmetic for uniform stoch perturbation
   // (Magic)
   if (utils::abs(x) < std::numeric_limits<float>::min()) {
     Float64 Res(oneF64.i64 | (RandomBits >> 12));
     Res.f64 -= 1.5;
-    return x + eps_F32.f64 * Res.f64;
+    return x + eps_F32.f64* Res.f64;
   }
 
   Float64 ExtendedFP{x};
   // arithmetic bitshift and |1 to create a random integer that is in (-u/2,u/2)
   // always set last random bit to 1 to avoid the creation of -u/2
+  // FIXME: 36 ?
   ExtendedFP.i64 += (RandomBits >> 35) | 1;
   return ExtendedFP.f64;
 }
@@ -79,7 +81,7 @@ float StochasticRound(double x) {
 double StochasticRound(__float128 x) {
   static Float128 oneF128 = 1.0;
   static Float128 eps_F64 =
-      std::nextafter((double)std::nextafter(0.0, 1.0), 0.0);    
+      std::nextafter((double)std::nextafter(0.0, 1.0), 0.0);
   uint128_t RandomBits = utils::rand<uint128_t>(0, MAX_UINT128);
 
   // subnormals are round with float-arithmetic for uniform stoch perturbation
@@ -89,7 +91,7 @@ double StochasticRound(__float128 x) {
     Res.f128 -= 1.5;
     return x + eps_F64.f128 * Res.f128;
   }
-  Float128 ExtendedFP(x);
+  Float128 ExtendedFP(x); 
   // arithmetic bitshift and |1 to create a random integer that is in (-u/2,u/2)
   // always set last random bit to 1 to avoid the creation of -u/2
 
@@ -104,7 +106,15 @@ using namespace mcasync;
 // We we'll use the random function provided with interflop-utils
 // So no need for a new random generator
 void BackendInit() noexcept {
-  InterflopContext::getInstance().setBackendName("MCA Synchrone");
+  InterflopContext& Context = InterflopContext::getInstance();
+  Context.setBackendName("MCA Synchrone");
+  if (utils::GetNSanShadowScale() != 4)
+  {
+    fprintf(stderr, "Warning: MCA Synchrone backend requires 4x shadow\n");
+    fprintf(stderr, "Recompile using flags -mllvm -nsan-shadowscale=4\n");
+    exit(1);
+  }
+
 }
 
 void BackendFinalize() noexcept {
@@ -116,7 +126,7 @@ namespace {
 
 template <size_t VectorSize, typename FPType, typename MCASyncShadow,
           typename DestType>
-void Cast(FPType a, MCASyncShadow **Shadow, DestType Res) {
+void CastInternal(FPType a, MCASyncShadow **Shadow, DestType Res) {
   // We just copy every value
   for (int I = 0; I < VectorSize; I++) {
     Res[I]->val[0] = Shadow[I]->val[0];
@@ -140,29 +150,9 @@ bool CheckInternal(ScalarVT Operand, MCASyncShadow *Shadow) {
   return SignificantDigit <= 7;
 }
 
-template <size_t VectorSize, typename FPType, typename MCASyncShadow>
-void CheckFail(FPType Operand, MCASyncShadow **Shadow) {
-  std::cout << "\033[1;31m";
-  std::cout << "[MCASync] Low precision shadow result :"
-            << std::setprecision(20) << std::endl;
-
-  std::cout << "\tNative Value: ";
-  // We shall not acess Operand[I] if we're not working on vectors
-  if constexpr (VectorSize > 1)
-    for (int I = 0; I < VectorSize; I++)
-      std::cout << Operand[I] << std::endl;
-  else
-    std::cout << Operand << std::endl;
-
-  std::cout << "\tShadow Value: \n\t  " << *Shadow[0] << std::endl;
-  // std::cout << "SignificantDigit : " << SignificantDigit << std::endl;
-  utils::DumpStacktrace();
-  std::cout << "\033[0m";
-}
-
 template <size_t VectorSize, typename MCASyncShadow>
-bool FCmp(FCmpOpcode Opcode, MCASyncShadow **LeftShadow,
-          MCASyncShadow **RightShadow) {
+bool FCmpInternal(FCmpOpcode Opcode, MCASyncShadow **LeftShadow,
+                  MCASyncShadow **RightShadow) {
 
   bool Res = true;
 
@@ -195,34 +185,6 @@ bool FCmp(FCmpOpcode Opcode, MCASyncShadow **LeftShadow,
   return Res;
 }
 
-template <size_t VectorSize, typename FPType, typename ShadowType>
-void FCmpCheckFail(FPType a, ShadowType **sa, FPType b, ShadowType **sb) {
-
-  std::cout << "\033[1;31m";
-  std::cout << "[MCASync] Floating-point comparison results depend on precision"
-            << std::endl;
-  std::cout << "\tValue  a: { ";
-  if constexpr (VectorSize > 1) {
-    for (int I = 0; I < VectorSize; I++)
-      std::cout << a[I] << " ";
-    std::cout << "} b: ";
-    for (int I = 0; I < VectorSize; I++)
-      std::cout << b[I] << " ";
-  } else
-    std::cout << a << " } b: {" << b;
-  std::cout << "Shadow a:\n";
-  for (int I = 0; I < VectorSize; I++) {
-    std::cout << "\t" << *sa[I] << "\n";
-  }
-  std::cout << "Shadow b:\n";
-  for (int I = 0; I < VectorSize; I++) {
-    std::cout << "\t" << *sb[I] << "\n";
-  }
-  utils::DumpStacktrace();
-  std::cout << "\033[0m";
-  if (InterflopContext::getInstance().Flags().getExitOnError())
-    exit(1);
-}
 } // namespace
 
 // Will either be double or __float128 depending on FPType
@@ -238,6 +200,21 @@ using MCASyncShadow = typename std::conditional<
     std::is_same<typename FPTypeInfo<FPType>::ScalarType,
                  OpaqueShadow128>::value,
     MCASyncShadow128, MCASyncShadow256>::type;
+
+template <typename FPType>
+FPType InterflopBackend<FPType>::Neg(FPType Operand, ShadowType **OperandShadow,
+                                     ShadowType **Res) {
+
+  auto Shadow = reinterpret_cast<MCASyncShadow<FPType> **>(OperandShadow);
+  auto ResShadow = reinterpret_cast<MCASyncShadow<FPType> **>(Res);
+
+  for (int I = 0; I < VectorSize; I++) {
+    ResShadow[I]->val[0] = -Shadow[I]->val[0];
+    ResShadow[I]->val[1] = -Shadow[I]->val[1];
+    ResShadow[I]->val[2] = -Shadow[I]->val[2];
+  }
+  return -Operand;
+}
 
 template <typename FPType>
 FPType
@@ -353,9 +330,26 @@ bool InterflopBackend<FPType>::Check(FPType Operand,
   if (Res) {
     auto &Context = InterflopContext::getInstance();
     Context.getStacktraceRecorder().Record();
+
+    // Print a warning
     if (Context.Flags().getWarningEnabled()) {
-      CheckFail<VectorSize>(Operand, Shadow);
+      std::cout << "\033[1;31m";
+      std::cout << "[MCASync] Low precision shadow result :"
+                << std::setprecision(20) << std::endl;
+
+      std::cout << "\tNative Value: ";
+      // We shall not acess Operand[I] if we're not working on vectors
+      if constexpr (VectorSize > 1)
+        for (int I = 0; I < VectorSize; I++)
+          std::cout << Operand[I] << std::endl;
+      else
+        std::cout << Operand << std::endl;
+
+      std::cout << "\tShadow Value: \n\t  " << *Shadow[0] << std::endl;
+      utils::DumpStacktrace();
+      std::cout << "\033[0m";
     }
+
     if (Context.Flags().getExitOnError())
       exit(1);
   }
@@ -373,14 +367,41 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
       reinterpret_cast<MCASyncShadow<FPType> **>(LeftShadowOperand);
   auto RightShadow =
       reinterpret_cast<MCASyncShadow<FPType> **>(RightShadowOperand);
-  bool Res = FCmp<VectorSize>(Opcode, LeftShadow, RightShadow);
+  bool Res = FCmpInternal<VectorSize>(Opcode, LeftShadow, RightShadow);
   // We expect both comparison to be equal, else we print an error
   if (Value != Res) {
     auto &Context = InterflopContext::getInstance();
     InterflopContext::getInstance().getStacktraceRecorder().Record();
-    if (Context.Flags().getWarningEnabled())
-      FCmpCheckFail<VectorSize>(LeftOperand, LeftShadow, RightOperand,
-                                RightShadow);
+
+    // Print a warning
+    if (Context.Flags().getWarningEnabled()) {
+      std::cout << "\033[1;31m";
+      std::cout
+          << "[MCASync] Floating-point comparison results depend on precision"
+          << std::endl;
+      std::cout << "\tValue  a: { ";
+      if constexpr (VectorSize > 1) {
+        for (int I = 0; I < VectorSize; I++)
+          std::cout << LeftOperand[I] << " ";
+        std::cout << "} b: ";
+        for (int I = 0; I < VectorSize; I++)
+          std::cout << RightOperand[I] << " ";
+      } else
+        std::cout << LeftOperand << " } b: {" << RightOperand;
+      std::cout << "Shadow a:\n";
+      for (int I = 0; I < VectorSize; I++) {
+        std::cout << "\t" << *LeftShadow[I] << "\n";
+      }
+      std::cout << "Shadow b:\n";
+      for (int I = 0; I < VectorSize; I++) {
+        std::cout << "\t" << *RightShadow[I] << "\n";
+      }
+      utils::DumpStacktrace();
+      std::cout << "\033[0m";
+    }
+
+    if (InterflopContext::getInstance().Flags().getExitOnError())
+      exit(1);
     if (Context.Flags().getExitOnError())
       exit(1);
   }
@@ -389,48 +410,33 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
 }
 
 template <typename FPType>
-void InterflopBackend<FPType>::DownCast(FPType Operand,
-                                        ShadowType **OperandShadow,
-                                        OpaqueShadow128 **Res) {
+void InterflopBackend<FPType>::CastToFloat(FPType Operand,
+                                           ShadowType **OperandShadow,
+                                           OpaqueShadow128 **Res) {
   auto Shadow = reinterpret_cast<MCASyncShadow<FPType> **>(OperandShadow);
   auto Destination = reinterpret_cast<MCASyncShadow128 **>(Res);
 
-  Cast<VectorSize>(Operand, Shadow, Destination);
+  CastInternal<VectorSize>(Operand, Shadow, Destination);
 }
 
 template <typename FPType>
-void InterflopBackend<FPType>::DownCast(FPType Operand,
-                                        ShadowType **OperandShadow,
-                                        OpaqueShadow256 **Res) {
+void InterflopBackend<FPType>::CastToDouble(FPType Operand,
+                                            ShadowType **OperandShadow,
+                                            OpaqueShadow256 **Res) {
   auto Shadow = reinterpret_cast<MCASyncShadow<FPType> **>(OperandShadow);
   auto Destination = reinterpret_cast<MCASyncShadow256 **>(Res);
 
-  Cast<VectorSize>(Operand, Shadow, Destination);
+  CastInternal<VectorSize>(Operand, Shadow, Destination);
 }
 
 template <typename FPType>
-void InterflopBackend<FPType>::UpCast(FPType Operand,
-                                      ShadowType **OperandShadow,
-                                      OpaqueShadow256 **Res) {
+void InterflopBackend<FPType>::CastToLongdouble(FPType Operand,
+                                                ShadowType **OperandShadow,
+                                                OpaqueShadow256 **Res) {
   auto Shadow = reinterpret_cast<MCASyncShadow<FPType> **>(OperandShadow);
   auto Destination = reinterpret_cast<MCASyncShadow256 **>(Res);
 
-  Cast<VectorSize>(Operand, Shadow, Destination);
-}
-
-template <typename FPType>
-FPType InterflopBackend<FPType>::Neg(FPType Operand, ShadowType **OperandShadow,
-                                     ShadowType **Res) {
-
-  auto Shadow = reinterpret_cast<MCASyncShadow<FPType> **>(OperandShadow);
-  auto ResShadow = reinterpret_cast<MCASyncShadow<FPType> **>(Res);
-
-  for (int I = 0; I < VectorSize; I++) {
-    ResShadow[I]->val[0] = -Shadow[I]->val[0];
-    ResShadow[I]->val[1] = -Shadow[I]->val[1];
-    ResShadow[I]->val[2] = -Shadow[I]->val[2];
-  }
-  return -Operand;
+  CastInternal<VectorSize>(Operand, Shadow, Destination);
 }
 
 template <typename FPType>
@@ -460,5 +466,7 @@ template class InterflopBackend<v8float>;
 template class InterflopBackend<double>;
 template class InterflopBackend<v2double>;
 template class InterflopBackend<v4double>;
+// template class InterflopBackend<long double>;
+// template class InterflopBackend<v2ldouble>;
 
 } // namespace interflop
