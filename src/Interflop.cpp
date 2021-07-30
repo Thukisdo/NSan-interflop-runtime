@@ -53,6 +53,13 @@ using namespace interflop;
 // Warning : since we're in a module constructor, some objects may still be
 // uninitialized, like std::cout
 extern "C" void __interflop_init() {
+  // FIXME: Should use the context initialization variable ?
+  static bool Initialized = false;
+
+  if (Initialized)
+    return;
+  Initialized = true;
+
   BackendInit();
   InterflopContext::getInstance().Init();
 }

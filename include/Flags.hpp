@@ -41,7 +41,7 @@ private:
   // If true, the program will exit on the first error.
   bool _ExitOnError = false;
   bool _PrintStatsOnExit = true;
-  bool _WarningEnabled = true;
+  bool _WarningEnabled = false;
   bool _UseColor = true;
   // Maximum number of warnings before exiting.
   // 0 means no limit.

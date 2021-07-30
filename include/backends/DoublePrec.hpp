@@ -28,7 +28,7 @@ struct DoublePrecLargeShadow {
   __float128 val;
 };
 
-static_assert(sizeof(DoublePrecShadow) == 8, "shadow size is wrong");
-static_assert(sizeof(DoublePrecLargeShadow) == 16, "Large shadow size is wrong");
+static_assert(sizeof(DoublePrecShadow) == 8, "invalid DoublePrec shadow size");
+static_assert(sizeof(DoublePrecLargeShadow) == 16, "invalid DoublePrec Large shadow size");
 
 } // namespace interflop::doubleprec
