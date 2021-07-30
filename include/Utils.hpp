@@ -42,10 +42,11 @@ typedef unsigned __int128 uint128_t;
 // Not defined in std::
 // FIXME: we should probably define std::numeric_limits<uint128_t> for a
 // coherent c++ syntax
-constexpr uint128_t Min_UINT128 = 0;
-constexpr uint128_t MAX_UINT128 = ~((uint128_t)0);
-constexpr int128_t MAX_INT128 = MAX_UINT128 >> 1;
-constexpr int128_t MIN_INT128 = -MAX_INT128 - 1;
+constexpr uint128_t UINT128_MIN = 0;
+constexpr uint128_t UINT128_MAX = ~((uint128_t)0);
+constexpr int128_t INT128_MAX = UINT128_MAX >> 1;
+constexpr int128_t INT128_MIN = -INT128_MAX - 1;
+constexpr __float128 FLOAT128_INFINITY = 1.0 / 1;
 
 namespace utils {
 
@@ -114,7 +115,7 @@ inline __uint128_t rand<__uint128_t>(const __uint128_t LowerBound,
 
 template <>
 inline __int128_t rand<__int128_t>(const __int128_t LowerBound,
-                                     const __int128_t UpperBound) {
+                                   const __int128_t UpperBound) {
 
   __int128_t res = rand<int64_t>();
   res |= static_cast<__int128_t>(rand<int64_t>()) << 64;
@@ -149,9 +150,8 @@ public:
   friend std::ostream &operator<<(std::ostream &Os, const AsciiColor &Color);
 
 private:
-
-  AsciiColor(const char* str) noexcept : Str(str) {}
-  const char* Str;
+  AsciiColor(const char *str) noexcept : Str(str) {}
+  const char *Str;
 };
 
 } // namespace utils

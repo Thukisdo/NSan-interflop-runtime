@@ -62,6 +62,9 @@ float StochasticRound(double x) {
       (double)std::nextafter(0.0f, std::numeric_limits<float>::max()),
       std::numeric_limits<double>::min())};
 
+  if (std::isinf(x))
+    return std::numeric_limits<float>::infinity();    
+
   // Caution: we must not generate unsigned radom bits, because the output
   // will be biased
   int64_t RandomBits = utils::rand<int64_t>();
@@ -85,7 +88,13 @@ double StochasticRound(__float128 x) {
   static Float128 oneF128 = 1.0;
   static Float128 eps_F64 =
       std::nextafter((double)std::nextafter(0.0, 1.0), 0.0);
-  int128_t RandomBits = utils::rand<int128_t>();
+  int128_t RandomBits = utils::rand<int128_t>(INT128_MIN, INT128_MAX);
+
+
+  if (x == FLOAT128_INFINITY)
+    return FLOAT128_INFINITY;
+  else if (x == -FLOAT128_INFINITY)
+    return -FLOAT128_INFINITY;
 
   // subnormals are round with float-arithmetic for uniform stoch perturbation
   // (Magic)
