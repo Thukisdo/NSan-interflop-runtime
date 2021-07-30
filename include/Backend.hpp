@@ -49,7 +49,6 @@ public:
   // Record a warning, automatically saving the stacktrace
   // This method is thread safe.
   void Record() {
-    return;
     std::scoped_lock<std::mutex> lock(Mutex);
     Map[utils::SaveStackTrace()]++;
   }
