@@ -1,6 +1,7 @@
 /**
  * @file MCASync.cpp
- * @author Mathys JAM (mathys.jam@ens.uvsq.fr)
+ * @author Mathys JAM (mathys.jam@ens.uvsq.fr), Pablo Oliveira (pablo.oliveira@ens.uvsq.fr)
+ *         and Eric Petit (eric.petit@ens.uvsq.fr)
  * @brief First prototype for a MCA Synchrone backend
  * @version 0.7.0
  * @date 2021-07-20
@@ -56,11 +57,14 @@ struct Float128 {
 // Adapted from a Julia rounding code
 // https://github.com/milankl/StochasticRounding.jl/blob/main/src/float32sr.jl
 float StochasticRound(double x) {
-  static const Float64 oneF64 = 1.0;
-  static const Float64 eps_F32 =
-      std::nextafter((double)std::nextafter(0.0f, 1.0f), 0.0);
+  static const Float64 oneF64{1.0};
+  static const Float64 eps_F32{std::nextafter(
+      (double)std::nextafter(0.0f, std::numeric_limits<float>::max()),
+      std::numeric_limits<double>::min())};
 
-  uint64_t RandomBits = utils::rand<uint64_t>();
+  // Caution: we must not generate unsigned radom bits, because the output
+  // will be biased
+  int64_t RandomBits = utils::rand<int64_t>();
   // subnormals are rounded with float-arithmetic for uniform stoch perturbation
   // (Magic)
   if (utils::abs(x) < std::numeric_limits<float>::min()) {
@@ -72,7 +76,6 @@ float StochasticRound(double x) {
   Float64 ExtendedFP{x};
   // arithmetic bitshift and |1 to create a random integer that is in (-u/2,u/2)
   // always set last random bit to 1 to avoid the creation of -u/2
-  // FIXME: 36 ?
   ExtendedFP.i64 += (RandomBits >> 35) | 1;
   return ExtendedFP.f64;
 }
@@ -82,7 +85,7 @@ double StochasticRound(__float128 x) {
   static Float128 oneF128 = 1.0;
   static Float128 eps_F64 =
       std::nextafter((double)std::nextafter(0.0, 1.0), 0.0);
-  uint128_t RandomBits = utils::rand<uint128_t>(0, MAX_UINT128);
+  int128_t RandomBits = utils::rand<int128_t>();
 
   // subnormals are round with float-arithmetic for uniform stoch perturbation
   // (Magic)
@@ -195,8 +198,7 @@ using ExtendedScalar =
 // Will either be MCAShadow128 or MCAShadow64 depending on FPType
 template <typename FPType>
 using ShadowTypeFor = typename std::conditional<
-    std::is_same<typename FPTypeInfo<FPType>::ScalarType,
-                 OpaqueShadow>::value,
+    std::is_same<typename FPTypeInfo<FPType>::ScalarType, OpaqueShadow>::value,
     MCASyncShadow, MCASyncLargeShadow>::type;
 
 template <typename FPType>
@@ -330,7 +332,7 @@ bool InterflopBackend<FPType>::Check(FPType Operand,
     Context.getStacktraceRecorder().Record();
 
     // Print a warning
-    if (Context.Flags().getWarningEnabled()) {
+    if (Context.Flags().WarningEnabled()) {
       std::cout << "\033[1;31m";
       std::cout << "[MCASync] Low precision shadow result :"
                 << std::setprecision(20) << std::endl;
@@ -348,7 +350,7 @@ bool InterflopBackend<FPType>::Check(FPType Operand,
       std::cout << "\033[0m";
     }
 
-    if (Context.Flags().getExitOnError())
+    if (Context.Flags().ExitOnError())
       exit(1);
   }
   return Res;
@@ -372,8 +374,8 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
     InterflopContext::getInstance().getStacktraceRecorder().Record();
 
     // Print a warning
-    if (Context.Flags().getWarningEnabled()) {
-      std::cout << "\033[1;31m";
+    if (Context.Flags().WarningEnabled()) {
+      std::cout << utils::AsciiColor::Red;
       std::cout
           << "[MCASync] Floating-point comparison results depend on precision"
           << std::endl;
@@ -395,12 +397,12 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
         std::cout << "\t" << *RightShadow[I] << "\n";
       }
       utils::DumpStacktrace();
-      std::cout << "\033[0m";
+      std::cout << utils::AsciiColor::Reset;
     }
 
-    if (InterflopContext::getInstance().Flags().getExitOnError())
+    if (InterflopContext::getInstance().Flags().ExitOnError())
       exit(1);
-    if (Context.Flags().getExitOnError())
+    if (Context.Flags().ExitOnError())
       exit(1);
   }
   // We return the shadow comparison result to be able to correctly branch

@@ -7,6 +7,8 @@
  *
  */
 #include "Utils.hpp"
+#include "Context.hpp"
+#include "fstream"
 
 // Defined in nsan's runtime
 void __nsan_dump_stacktrace();
@@ -29,7 +31,9 @@ uint32_t __nsan_save_stacktrace() { return 0; }
 
 void __nsan_print_stacktrace(uint32_t StackId) {}
 
-size_t __nsan_get_shadowscale() {return 2;}
+// FIXME: here we need to return a dummy value, but we don't know what's the
+// shadow memory size, so this may lead to a backend crash
+size_t __nsan_get_shadowscale() { return 2; }
 
 #endif
 
@@ -61,9 +65,25 @@ void PrintStackTrace(uint32_t StackId) noexcept {
   __nsan_print_stacktrace(StackId);
 }
 
-size_t GetNSanShadowScale()
-{
-  return __nsan_get_shadowscale();
+size_t GetNSanShadowScale() { return __nsan_get_shadowscale(); }
+
+AsciiColor AsciiColor::Red = "\033[31m";
+AsciiColor AsciiColor::Yellow = "\033[33m";
+AsciiColor AsciiColor::Blue = "\033[34m";
+AsciiColor AsciiColor::Cyan = "\033[36m";
+AsciiColor AsciiColor::Green = "\033[32m";
+AsciiColor AsciiColor::Lime = "\033[92m";
+AsciiColor AsciiColor::Magenta = "\033[95m";
+AsciiColor AsciiColor::Gray = "\033[90m";
+AsciiColor AsciiColor::Reset = "\033[0m";
+
+std::ostream &operator<<(std::ostream &Os, const AsciiColor &Color) {
+  if (dynamic_cast<std::fstream*>(&Os))
+    return Os;
+  if (InterflopContext::getInstance().Flags().UseColor())
+    Os << Color.Str;
+  return Os;
 }
+
 
 } // namespace interflop::utils

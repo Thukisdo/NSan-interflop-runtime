@@ -42,7 +42,10 @@ typedef unsigned __int128 uint128_t;
 // Not defined in std::
 // FIXME: we should probably define std::numeric_limits<uint128_t> for a
 // coherent c++ syntax
+constexpr uint128_t Min_UINT128 = 0;
 constexpr uint128_t MAX_UINT128 = ~((uint128_t)0);
+constexpr int128_t MAX_INT128 = MAX_UINT128 >> 1;
+constexpr int128_t MIN_INT128 = -MAX_INT128 - 1;
 
 namespace utils {
 
@@ -96,7 +99,7 @@ T rand(const T LowerBound = std::numeric_limits<T>::min(),
   return distribution(RandomGenerator);
 }
 
-// std:: does not natively support __float128
+// std:: does not natively support 128 bits types
 // So we need to define our own rand function
 // By combining multiple uint64_t
 template <>
@@ -105,6 +108,16 @@ inline __uint128_t rand<__uint128_t>(const __uint128_t LowerBound,
 
   __uint128_t res = rand<uint64_t>();
   res |= static_cast<__uint128_t>(rand<uint64_t>()) << 64;
+
+  return res % (UpperBound - LowerBound) + LowerBound;
+}
+
+template <>
+inline __int128_t rand<__int128_t>(const __int128_t LowerBound,
+                                     const __int128_t UpperBound) {
+
+  __int128_t res = rand<int64_t>();
+  res |= static_cast<__int128_t>(rand<int64_t>()) << 64;
 
   return res % (UpperBound - LowerBound) + LowerBound;
 }
@@ -120,6 +133,26 @@ template <> inline bool isnan(__float128 x) {
 }
 
 size_t GetNSanShadowScale();
+
+class AsciiColor {
+public:
+  static AsciiColor Red;
+  static AsciiColor Yellow;
+  static AsciiColor Blue;
+  static AsciiColor Cyan;
+  static AsciiColor Green;
+  static AsciiColor Lime;
+  static AsciiColor Magenta;
+  static AsciiColor Gray;
+  static AsciiColor Reset;
+
+  friend std::ostream &operator<<(std::ostream &Os, const AsciiColor &Color);
+
+private:
+
+  AsciiColor(const char* str) noexcept : Str(str) {}
+  const char* Str;
+};
 
 } // namespace utils
 } // namespace interflop

@@ -20,7 +20,6 @@ void BackendInit() noexcept {
   if (utils::GetNSanShadowScale() != 2) {
     fprintf(stderr, "Warning: [DoublePrec] backend requires 2x shadow\n");
     fprintf(stderr, "Recompile using flags -mllvm -nsan-shadowscale=2\n");
-    exit(1);
   }
 }
 
@@ -91,7 +90,7 @@ void FCmpCheckFail(FPType a, DoublePrecShadow **sa, FPType b,
   std::cout << "}" << std::endl;
 
   utils::DumpStacktrace();
-  if (InterflopContext::getInstance().Flags().getExitOnError())
+  if (InterflopContext::getInstance().Flags().ExitOnError())
     exit(1);
 }
 
@@ -111,7 +110,7 @@ bool CheckInternal(ScalarVT Operand, DoublePrecShadow *Shadow) {
 template <size_t VectorSize, typename FPType, typename DoublePrecShadow>
 void CheckFail(FPType Operand, DoublePrecShadow **Shadow) {
 
-  std::cout << "\033[1;31m";
+  std::cout << utils::AsciiColor::Red;
   std::cout << "[DoublePrec] Inconsistent shadow result :"
             << std::setprecision(20) << std::endl;
 
@@ -125,7 +124,7 @@ void CheckFail(FPType Operand, DoublePrecShadow **Shadow) {
 
   std::cout << "\tShadow Value: \n\t  " << Shadow[0]->val << std::endl;
   utils::DumpStacktrace();
-  std::cout << "\033[0m";
+  std::cout << utils::AsciiColor::Reset;
 }
 
 template <size_t VectorSize, typename FPType, typename ShadowType,
@@ -253,11 +252,11 @@ bool InterflopBackend<FPType>::Check(FPType Operand,
     // We may want to store additional information
     auto &Context = InterflopContext::getInstance();
     Context.getStacktraceRecorder().Record();
-    if (Context.Flags().getWarningEnabled()) {
+    if (Context.Flags().WarningEnabled()) {
 
       CheckFail<VectorSize>(Operand, Shadow);
     }
-    if (Context.Flags().getExitOnError())
+    if (Context.Flags().ExitOnError())
       exit(1);
   }
   return Res;
@@ -288,11 +287,11 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
     // We may want to store additional information
     auto &Context = InterflopContext::getInstance();
     Context.getStacktraceRecorder().Record();
-    if (Context.Flags().getWarningEnabled()) {
+    if (Context.Flags().WarningEnabled()) {
       FCmpCheckFail<VectorSize>(LeftOperand, LeftShadow, RightOperand,
                                 RightShadow);
     }
-    if (Context.Flags().getExitOnError())
+    if (Context.Flags().ExitOnError())
       exit(1);
   }
   // We return the shadow comparison result to be able to correctly branch

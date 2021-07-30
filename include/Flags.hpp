@@ -19,31 +19,35 @@ public:
   // FIXME : should load the config from a file or from the environnement
   RuntimeFlags() {}
   
-  void setExitOnError(bool const Value) { ExitOnError = Value; }
-  bool getExitOnError() const { return ExitOnError; }
+  void ExitOnError(bool const Value) { _ExitOnError = Value; }
+  bool ExitOnError() const { return _ExitOnError; }
 
-  void setPrintStatsOnExit(bool const value) { PrintStatsOnExit = value; }
-  bool getPrintStatsOnExit() const { return PrintStatsOnExit; }
+  void PrintStatsOnExit(bool const value) { _PrintStatsOnExit = value; }
+  bool PrintStatsOnExit() const { return _PrintStatsOnExit; }
 
-  void setWarningEnabled(bool const value) { WarningEnabled = value; }
-  bool getWarningEnabled() const { return WarningEnabled; }
+  void WarningEnabled(bool const value) { _WarningEnabled = value; }
+  bool WarningEnabled() const { return _WarningEnabled; }
 
-  void setWarningLimit(size_t const value) { WarningLimit = value; }
-  size_t getWarningLimit() const { return WarningLimit; }
+  void WarningLimit(size_t const value) { _WarningLimit = value; }
+  size_t WarningLimit() const { return _WarningLimit; }
 
-  void setVerbose(bool const value) { Verbose = value; }
-  bool getVerbose() const { return Verbose; }
+  void Verbose(bool const value) { _Verbose = value; }
+  bool Verbose() const { return _Verbose; }
+
+  bool UseColor() const {return _UseColor;}
+  void UseColor(bool const value) { _UseColor = value; }
 
 private:
   // If true, the program will exit on the first error.
-  bool ExitOnError = false;
-  bool PrintStatsOnExit = true;
-  bool WarningEnabled = true;
+  bool _ExitOnError = false;
+  bool _PrintStatsOnExit = true;
+  bool _WarningEnabled = true;
+  bool _UseColor = true;
   // Maximum number of warnings before exiting.
   // 0 means no limit.
   // FIXME : not used yet 
-  size_t WarningLimit = 20;
-  bool Verbose = false;
+  size_t _WarningLimit = 20;
+  bool _Verbose = false;
 };
 
 } // namespace interflop
