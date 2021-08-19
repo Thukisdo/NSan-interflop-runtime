@@ -2,8 +2,8 @@
 
 # Python script to automatically generate the interface, since it is filled with boilerplate code
 
-FPTypes = ["float", "double"] # "longdouble"
-MaxVectorSize = {'float': 8, 'double': 4, 'longdouble': 2}
+FPTypes = ["float", "double", "longdouble"]
+MaxVectorSize = {'float': 16, 'double': 8, 'longdouble': 4}
 ShadowType = ["OpaqueShadow", "OpaqueLargeShadow"]
 
 
@@ -145,7 +145,7 @@ def GenerateCast(Type: str, VSize: int, File=None):
     Casts = {"float": "CastToFloat", "double": "CastToDouble", "longdouble": "CastToLongdouble"}
 
     for DestType in FPTypes:
-        if DestType == Type:
+        if DestType == Type or VSize > MaxVectorSize[DestType]:
             continue
         ShadowDestType = FPTypeToShadow(DestType, VSize)
         Cast = "DownCast" if DestType == "float" else "UpCast"

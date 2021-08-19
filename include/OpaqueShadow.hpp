@@ -24,6 +24,7 @@ struct OpaqueLargeShadow {
 typedef OpaqueShadow *v2OpaqueShadow[2];
 typedef OpaqueShadow *v4OpaqueShadow[4];
 typedef OpaqueShadow *v8OpaqueShadow[8];
+typedef OpaqueShadow *v16OpaqueShadow[16];
 
 typedef OpaqueLargeShadow *v2OpaqueLargeShadow[2];
 typedef OpaqueLargeShadow *v4OpaqueLargeShadow[4];
