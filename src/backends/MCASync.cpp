@@ -472,10 +472,11 @@ template class InterflopBackend<float>;
 template class InterflopBackend<v2float>;
 template class InterflopBackend<v4float>;
 template class InterflopBackend<v8float>;
+template class InterflopBackend<v16float>;
 template class InterflopBackend<double>;
 template class InterflopBackend<v2double>;
 template class InterflopBackend<v4double>;
-// template class InterflopBackend<long double>;
-// template class InterflopBackend<v2ldouble>;
+template class InterflopBackend<long double>;
+template class InterflopBackend<v2ldouble>;
 
 } // namespace interflop
