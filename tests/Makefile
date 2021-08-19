@@ -12,7 +12,7 @@ CFLAGS = -O3
 CXXFLAGS = -O0 -g
 INSTRUMENTATION_FLAGS = -fno-omit-frame-pointer -fsanitize=numerical -mllvm -nsan-interflop -mllvm -nsan-shadowscale=2
 LINK_LIBRARY = -L../release/lib  -linterflop-interface -linterflop-doubleprec -linterflop-core
-TEST=nsan_tests/cadna_ex2.cc
+TEST=nsan_tests/verificarlo_case4.cc
 
 .PHONY: test.o
 test.o: 

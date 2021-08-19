@@ -43,12 +43,10 @@ add_library(interflop-dummy-core STATIC ${SRC} ${HEADERS})
 target_compile_definitions(interflop-dummy-core PUBLIC -DDUMMY_NSAN_INTERFACE)
 target_include_directories(interflop-dummy-core PUBLIC include)
 
-add_library(interflop-doubleprec STATIC "src/backends/DoublePrec.cpp"
-                                        "include/Context.hpp")
+add_library(interflop-doubleprec STATIC "src/backends/DoublePrec.cpp")
 target_include_directories(interflop-doubleprec PUBLIC include)
 
-add_library(interflop-mcasync STATIC "src/backends/MCASync.cpp"
-                                     "include/Context.hpp")
+add_library(interflop-mcasync STATIC "src/backends/MCASync.cpp")
 target_include_directories(interflop-mcasync PUBLIC include)
 
 set_target_properties(interflop-core interflop-interface interflop-mcasync interflop-doubleprec interflop-dummy-core
