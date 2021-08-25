@@ -23,12 +23,16 @@ enum FCmpOpcode {
   FCmp_oeq,
   FCmp_one,
   FCmp_ogt,
+  FCmp_oge,
   FCmp_olt,
+  FCmp_ole,
   UnorderedFCmp,
   FCmp_ueq,
   FCmp_une,
   FCmp_ugt,
-  FCmp_ult
+  FCmp_uge,
+  FCmp_ult,
+  FCmp_ule
 };
 
 // Guaranteed to be called before the first call to the backend.

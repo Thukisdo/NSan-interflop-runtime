@@ -8,6 +8,7 @@
  *
  */
 
+#include <cstring>
 #include "backends/DoublePrec.hpp"
 #include "Context.hpp"
 
@@ -48,14 +49,19 @@ bool FCmp(FCmpOpcode Opcode, DoublePrecShadow **LeftShadow,
       continue; // NaN <=> NaN is always true, no need to go further
 
     // Handle (ordered) comparisons
+    // FIXME: Refactor this atrocity
     if (Opcode == FCmp_oeq || Opcode == FCmp_ueq)
       Res = Res && (LeftOp == RightOp);
     else if (Opcode == FCmp_one || Opcode == FCmp_une)
       Res = Res && (LeftOp != RightOp);
     else if (Opcode == FCmp_ogt || Opcode == FCmp_ugt)
       Res = Res && (LeftOp > RightOp);
+    else if (Opcode == FCmp_oge || Opcode == FCmp_uge)
+      Res = Res && (LeftOp >= RightOp);  
     else if (Opcode == FCmp_olt || Opcode == FCmp_ult)
       Res = Res && (LeftOp < RightOp);
+    else if (Opcode == FCmp_ole || Opcode == FCmp_ule)
+      Res = Res && (LeftOp <= RightOp);  
     else
       utils::unreachable("Unknown Predicate");
   }
@@ -101,6 +107,7 @@ bool CheckInternal(ScalarVT Operand, DoublePrecShadow *Shadow) {
   // FIXME : Should be defined as flags for more versatility
   static constexpr double MaxAbsoluteError = 1.0 / std::pow(2, 32);
   static constexpr double MaxRelativeError = 1.0 / std::pow(2, 19);
+
 
   double AbsoluteError = utils::abs(Operand - Shadow->val);
   double RelativeError = utils::abs((AbsoluteError / Shadow->val) * 100);
@@ -349,11 +356,14 @@ template class InterflopBackend<v2float>;
 template class InterflopBackend<v4float>;
 template class InterflopBackend<v8float>;
 template class InterflopBackend<v16float>;
+
 template class InterflopBackend<double>;
 template class InterflopBackend<v2double>;
 template class InterflopBackend<v4double>;
 template class InterflopBackend<v8double>;
-// template class InterflopBackend<long double>;
-// template class InterflopBackend<v2ldouble>;
+
+template class InterflopBackend<long double>;
+template class InterflopBackend<v2ldouble>;
+template class InterflopBackend<v4ldouble>;
 
 } // namespace interflop

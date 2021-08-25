@@ -65,7 +65,11 @@ void PrintStackTrace(uint32_t StackId) noexcept {
   __nsan_print_stacktrace(StackId);
 }
 
-size_t GetNSanShadowScale() { return __nsan_get_shadowscale(); }
+size_t GetNSanShadowScale() { 
+  size_t res = __nsan_get_shadowscale();
+  printf("ShadowScale : %li\n", res);
+  return res;
+}
 
 AsciiColor AsciiColor::Red = "\033[31m";
 AsciiColor AsciiColor::Yellow = "\033[33m";

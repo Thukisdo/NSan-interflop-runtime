@@ -5,9 +5,10 @@
 #include <iomanip>
 #include <iostream>
 
-constexpr size_t N_SAMPLE = 100000;
 
 using namespace interflop::mcasync;
+
+constexpr size_t N_SAMPLE = 100000;
 
 // Helper methods to generate samples from a given input
 void Sample(double Input, std::pair<size_t, size_t> &Counts) {
@@ -35,8 +36,7 @@ void Sample(double Input, std::pair<size_t, size_t> &Counts) {
   }
 }
 
-// Helper method to calculate the expected output probability of upward rounding
-// a given input
+// Helper method to compute the expected output probability of upward rounding
 double ChanceRoundup(double x) {
 
   double xround = (float)x;

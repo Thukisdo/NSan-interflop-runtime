@@ -1,7 +1,7 @@
 /**
  * @file MCASync.cpp
- * @author Mathys JAM (mathys.jam@ens.uvsq.fr), Pablo Oliveira (pablo.oliveira@ens.uvsq.fr)
- *         and Eric Petit (eric.petit@ens.uvsq.fr)
+ * @author Mathys JAM (mathys.jam@ens.uvsq.fr), Pablo Oliveira
+ * (pablo.oliveira@ens.uvsq.fr) and Eric Petit (eric.petit@ens.uvsq.fr)
  * @brief First prototype for a MCA Synchrone backend
  * @version 0.7.0
  * @date 2021-07-20
@@ -32,25 +32,25 @@ std::ostream &operator<<(std::ostream &os, MCASyncLargeShadow const &s) {
 // Helper struct for type puning double -> ui64
 struct Float64 {
   Float64(double f) : f64(f) {}
-  Float64(uint64_t i) : i64(i) {}
+  Float64(int64_t i) : i64(i) {}
 
   union {
     double f64;
-    uint64_t i64;
+    int64_t i64;
   };
 };
 
 // Helper struct for type puning f128 -> ui128
 struct Float128 {
   Float128(__float128 f) : f128(f) {}
-  Float128(__uint128_t i) : i128(i) {}
+  Float128(__int128_t i) : i128(i) {}
   Float128(double f)
       : f128(f) {} // Strangely, the compiler doesn't know wether to implicitly
                    // cast a double to f128 or i128, so we need an explicit ctor
 
   union {
     __float128 f128;
-    __uint128_t i128;
+    __int128_t i128;
   };
 };
 
@@ -63,7 +63,7 @@ float StochasticRound(double x) {
       std::numeric_limits<double>::min())};
 
   if (std::isinf(x))
-    return std::numeric_limits<float>::infinity();    
+    return x;
 
   // Caution: we must not generate unsigned radom bits, because the output
   // will be biased
@@ -86,17 +86,15 @@ float StochasticRound(double x) {
 // FIXME: Redundant code, could use templates to only have one function
 double StochasticRound(__float128 x) {
   static Float128 oneF128 = 1.0;
-  static Float128 eps_F64 =
-      std::nextafter((double)std::nextafter(0.0, 1.0), 0.0);
-  int128_t RandomBits = utils::rand<int128_t>(INT128_MIN, INT128_MAX);
+  static Float128 eps_F64 = std::nextafter(
+      (double)std::nextafter(0.0, std::numeric_limits<double>::max()),
+      std::numeric_limits<double>::min());
 
+  if (x == FLOAT128_INFINITY || x == -FLOAT128_INFINITY)
+    return x;
 
-  if (x == FLOAT128_INFINITY)
-    return FLOAT128_INFINITY;
-  else if (x == -FLOAT128_INFINITY)
-    return -FLOAT128_INFINITY;
-
-  // subnormals are round with float-arithmetic for uniform stoch perturbation
+  int128_t RandomBits = utils::rand<int128_t>();
+  // subnormals are rounded with float-arithmetic for uniform stoch perturbation
   // (Magic)
   if (utils::abs(x) < std::numeric_limits<double>::min()) {
     Float128 Res(oneF128.i128 | (RandomBits >> 16));
@@ -107,7 +105,7 @@ double StochasticRound(__float128 x) {
   // arithmetic bitshift and |1 to create a random integer that is in (-u/2,u/2)
   // always set last random bit to 1 to avoid the creation of -u/2
 
-  ExtendedFP.i128 = (ExtendedFP.i128 + (RandomBits >> 68)) | 1;
+  ExtendedFP.i128 = (ExtendedFP.i128 + (RandomBits >> 57)) | 1;
   return ExtendedFP.f128;
 }
 
@@ -181,14 +179,19 @@ bool FCmpInternal(FCmpOpcode Opcode, MCASyncShadow **LeftShadow,
       continue;
 
     // Handle (ordered) comparisons
+    // FIXME: Refactor this atrocity
     if (Opcode == FCmp_oeq || Opcode == FCmp_ueq)
       Res = Res && (MeanLeftOp == MeanRightOp);
     else if (Opcode == FCmp_one || Opcode == FCmp_une)
       Res = Res && (MeanLeftOp != MeanRightOp);
     else if (Opcode == FCmp_ogt || Opcode == FCmp_ugt)
       Res = Res && (MeanLeftOp > MeanRightOp);
+    else if (Opcode == FCmp_oge || Opcode == FCmp_uge)
+      Res = Res && (MeanLeftOp >= MeanRightOp);
     else if (Opcode == FCmp_olt || Opcode == FCmp_ult)
       Res = Res && (MeanLeftOp < MeanRightOp);
+    else if (Opcode == FCmp_ole || Opcode == FCmp_ule)
+      Res = Res && (MeanLeftOp >= MeanRightOp);
     else
       utils::unreachable("Unknown Predicate");
   }
@@ -457,13 +460,13 @@ void InterflopBackend<FPType>::MakeShadow(FPType Source, ShadowType **Res) {
     // We need a constexpr if to prevent the compiler from evaluating a[I]
     // if its a scalar
     if constexpr (VectorSize > 1) {
-      ResShadow[I]->val[0] = StochasticRound(Source[I]);
-      ResShadow[I]->val[1] = StochasticRound(Source[I]);
-      ResShadow[I]->val[2] = StochasticRound(Source[I]);
+      ResShadow[I]->val[0] = Source[I];
+      ResShadow[I]->val[1] = Source[I];
+      ResShadow[I]->val[2] = Source[I];
     } else {
-      ResShadow[0]->val[0] = StochasticRound(Source);
-      ResShadow[0]->val[1] = StochasticRound(Source);
-      ResShadow[0]->val[2] = StochasticRound(Source);
+      ResShadow[0]->val[0] = Source;
+      ResShadow[0]->val[1] = Source;
+      ResShadow[0]->val[2] = Source;
     }
   }
 }
@@ -473,10 +476,14 @@ template class InterflopBackend<v2float>;
 template class InterflopBackend<v4float>;
 template class InterflopBackend<v8float>;
 template class InterflopBackend<v16float>;
+
 template class InterflopBackend<double>;
 template class InterflopBackend<v2double>;
 template class InterflopBackend<v4double>;
-// template class InterflopBackend<long double>;
-// template class InterflopBackend<v2ldouble>;
+template class InterflopBackend<v8double>;
+
+template class InterflopBackend<long double>;
+template class InterflopBackend<v2ldouble>;
+template class InterflopBackend<v4ldouble>;
 
 } // namespace interflop

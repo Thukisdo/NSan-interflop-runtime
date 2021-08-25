@@ -32,21 +32,20 @@ typedef float v16float __attribute__((vector_size(64)));
 typedef double v2double __attribute__((vector_size(16)));
 typedef double v4double __attribute__((vector_size(32)));
 typedef double v8double __attribute__((vector_size(64)));
-typedef long double v2ldouble __attribute__((vector_size(16)));
-typedef long double v4ldouble __attribute__((vector_size(32)));
-typedef long double v8ldouble __attribute__((vector_size(64)));
+typedef long double v2ldouble __attribute__((vector_size(32)));
+typedef long double v4ldouble __attribute__((vector_size(64)));
 
 typedef __int128 int128_t;
 typedef unsigned __int128 uint128_t;
 
 // Not defined in std::
-// FIXME: we should probably define std::numeric_limits<uint128_t> for a
-// coherent c++ syntax
+// FIXME: Replace by std::numeric_limits<uint128_t> definition
 constexpr uint128_t UINT128_MIN = 0;
 constexpr uint128_t UINT128_MAX = ~((uint128_t)0);
 constexpr int128_t INT128_MAX = UINT128_MAX >> 1;
 constexpr int128_t INT128_MIN = -INT128_MAX - 1;
-constexpr __float128 FLOAT128_INFINITY = 1.0 / 1;
+constexpr __float128 FLOAT128_INFINITY =
+    std::numeric_limits<double>::infinity();
 
 namespace utils {
 
@@ -83,9 +82,7 @@ void PrintStackTrace(uint32_t StackId) noexcept;
 // Return an integer between [LowerBound; Upperbound] included
 // By default between [T::min; T::max]
 // Thread safe
-template <typename T>
-T rand(const T LowerBound = std::numeric_limits<T>::min(),
-       const T UpperBound = std::numeric_limits<T>::max()) {
+template <typename T> T rand() {
   // We dont need the same distribution for int and float
   using uniform_distribution =
       typename std::conditional<std::is_integral<T>::value,
@@ -96,31 +93,28 @@ T rand(const T LowerBound = std::numeric_limits<T>::min(),
   static thread_local std::default_random_engine RandomGenerator(time(nullptr));
 
   // Lightweight object
-  uniform_distribution distribution(LowerBound, UpperBound);
+  uniform_distribution distribution(std::numeric_limits<T>::min(),
+                                    std::numeric_limits<T>::max());
   return distribution(RandomGenerator);
 }
 
 // std:: does not natively support 128 bits types
 // So we need to define our own rand function
 // By combining multiple uint64_t
-template <>
-inline __uint128_t rand<__uint128_t>(const __uint128_t LowerBound,
-                                     const __uint128_t UpperBound) {
+template <> inline __uint128_t rand<__uint128_t>() {
 
-  __uint128_t res = rand<uint64_t>();
-  res |= static_cast<__uint128_t>(rand<uint64_t>()) << 64;
+  __uint128_t Left64 = rand<uint64_t>();
+  __uint128_t Right64 = rand<uint64_t>();
 
-  return res % (UpperBound - LowerBound) + LowerBound;
+  return (Left64 << 64) | Right64;
 }
 
-template <>
-inline __int128_t rand<__int128_t>(const __int128_t LowerBound,
-                                   const __int128_t UpperBound) {
+template <> inline __int128_t rand<__int128_t>() {
 
-  __int128_t res = rand<int64_t>();
-  res |= static_cast<__int128_t>(rand<int64_t>()) << 64;
+  __int128_t Left64 = rand<int64_t>();
+  __int128_t Right64 = rand<int64_t>();
 
-  return res % (UpperBound - LowerBound) + LowerBound;
+  return (Left64 << 64) | Right64;
 }
 
 // std::abs and std::isnan do not natively support __float128

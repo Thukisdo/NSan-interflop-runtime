@@ -56,8 +56,8 @@ struct MCASyncLargeShadow {
   }
 };
 
-static_assert(sizeof(MCASyncShadow) == 16, "shadow size is wrong");
-static_assert(sizeof(MCASyncLargeShadow) == 32, "Large shadow size is wrong");
+static_assert(sizeof(MCASyncShadow) == 16, "Invalid shadow size");
+static_assert(sizeof(MCASyncLargeShadow) == 32, "Invalid Large shadow size");
 
 // Adapted from a Julia rounding code
 // Voluntary making it avaible externally for testing purposes

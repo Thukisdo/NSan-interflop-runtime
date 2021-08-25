@@ -16,95 +16,73 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import math
 
+def plot_samples(FPType: str, input_filename: str) :
 
-# Read command line arguments
-if len(sys.argv) != 3:
-    print("usage: ./plot_all.py DATA.tab precision")
-    sys.exit(1)
+    # Set title
+    title=f"MCA Tests for {FPType} type"
+    plt.figure(title, figsize=(10, 8))
+    plt.suptitle(title)
 
-fname = sys.argv[1]
-prec_b = sys.argv[2]
-version = fname[:-4]
-
-# Convert binary to decimal precision
-prec_dec=float(prec_b)*math.log(2, 10)
-
-# Parse table file
-# three columns:
-#   - i: sample number
-#   - x: input value
-#   - T: polynomial evaluation on x, T(x)
-D = np.loadtxt(fname,
-        dtype = dict(names=('i', 'x', 'T'),
-                     formats=('i4', 'f8', 'f8')))
-
-# Compute all statistics (mu, sigma, s)
-x_values = np.unique(D['x'])
-mu_values = []
-mu_sigma_values = []
-sigma_values = []
-s_values = []
-
-for x in x_values:
-    # select all T samples for given x
-    T_samples = D[D['x'] == x]['T']
-
-    # Compute mu and sigma statistics
-    mu = np.mean(T_samples)
-    sigma = np.std(T_samples)
-
-    # Compute significant digits
-    if sigma == 0:
-        s = prec_dec
-    elif mu == 0:
-        s = 0
-    else:
-        # Stott Parker's formula
-        s = min(-math.log10(sigma/abs(mu)), prec_dec)
-
-    mu_values.append(mu)
-    sigma_values.append(sigma)
-    s_values.append(s)
-
-# Computes the rolling mean for sigma
-mu_sigma_values = np.convolve(sigma_values, np.ones(100), mode='valid') / 100
-# Needed to properly plot the rolling mean
-mu_sigma_y = np.convolve(x_values, np.ones(100), mode='valid') / 100
+    # Convert binary to decimal precision
+    prec_dec=float(32)*math.log(2, 10)
 
 
-# Plot all statistics
-# plt.style.use('bmh')
+    D = np.loadtxt(input_filename,
+            dtype = dict(names=('i', 'x', 'T'),
+                        formats=('i4', 'f8', 'f8')))
 
-# Set title
-title=version + " verificarlo precision = " + prec_b + "bits"
-plt.figure(title, figsize=(10,8))
-plt.suptitle(title)
+    # Compute all statistics (mu, sigma, s)
+    x_values = np.unique(D['x'])
+    mu_values = []
+    mu_sigma_values = []
+    sigma_values = []
+    s_values = []
 
-# Plot significant digits
-plt.subplot(311)
-plt.ylabel("$s$")
-plt.plot(x_values, s_values, '.')
+    for x in x_values:
+        # select all T samples for given x
+        T_samples = D[D['x'] == x]['T']
 
-# Plot standard deviation
-plt.subplot(312)
-plt.ylabel("$\hat \sigma$")
-plt.plot(x_values, sigma_values, '.')
-plt.plot(mu_sigma_y, mu_sigma_values, '--')
+        # Compute mu and sigma statistics
+        mu = np.mean(T_samples)
+        sigma = np.std(T_samples)
 
-# Plot samples and mean
-plt.subplot(313)
-plt.xlabel("$x$")
-plt.ylabel("$T(x)$ and $\hat \mu$")
-plt.plot(D['x'], D['T'], 'k.', alpha=0.5)
-plt.plot(x_values, mu_values, '--', color='r')
+        # Compute significant digits
+        if sigma == 0:
+            s = prec_dec
+        elif mu == 0:
+            s = 0
+        else:
+            # Stott Parker's formula
+            s = min(-math.log10(sigma/abs(mu)), prec_dec)
 
-# Set layout
-plt.tight_layout()
-plt.subplots_adjust(top=0.9)
+        mu_values.append(mu)
+        sigma_values.append(sigma)
+        s_values.append(s)
 
-# Save plot as pdf
-plotname=version+"-"+prec_b+".pdf"
-plt.savefig(plotname, format='pdf')
 
-# Show plot (disable on headless runs)
-# plt.show()
+    # Plot significant digits
+    plt.subplot(311)
+    plt.ylabel("$s$")
+    plt.plot(x_values, s_values, '.')
+
+    # Plot standard deviation
+    plt.subplot(312)
+    plt.ylabel("$\hat \sigma$")
+    plt.plot(x_values, sigma_values, '.')
+
+    # Plot samples and mean
+    plt.subplot(313)
+    plt.xlabel("$x$")
+    plt.ylabel("$T(x)$ and $\hat \mu$")
+    plt.plot(D['x'], D['T'], 'k.', alpha=0.5)
+    plt.plot(x_values, mu_values, '--', color='r')
+    # Save plot as pdf
+    plotname="results_" + FPType + ".pdf"
+    plt.savefig(plotname, format='pdf')
+
+
+plot_samples("float", "out_float.dat")
+plot_samples("double", "out_double.dat")
+plot_samples("longdouble", "out_longdouble.dat") 
+
+ 
