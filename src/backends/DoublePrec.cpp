@@ -8,9 +8,9 @@
  *
  */
 
-#include <cstring>
 #include "backends/DoublePrec.hpp"
 #include "Context.hpp"
+#include <cstring>
 
 namespace interflop {
 
@@ -57,11 +57,11 @@ bool FCmp(FCmpOpcode Opcode, DoublePrecShadow **LeftShadow,
     else if (Opcode == FCmp_ogt || Opcode == FCmp_ugt)
       Res = Res && (LeftOp > RightOp);
     else if (Opcode == FCmp_oge || Opcode == FCmp_uge)
-      Res = Res && (LeftOp >= RightOp);  
+      Res = Res && (LeftOp >= RightOp);
     else if (Opcode == FCmp_olt || Opcode == FCmp_ult)
       Res = Res && (LeftOp < RightOp);
     else if (Opcode == FCmp_ole || Opcode == FCmp_ule)
-      Res = Res && (LeftOp <= RightOp);  
+      Res = Res && (LeftOp <= RightOp);
     else
       utils::unreachable("Unknown Predicate");
   }
@@ -107,7 +107,6 @@ bool CheckInternal(ScalarVT Operand, DoublePrecShadow *Shadow) {
   // FIXME : Should be defined as flags for more versatility
   static constexpr double MaxAbsoluteError = 1.0 / std::pow(2, 32);
   static constexpr double MaxRelativeError = 1.0 / std::pow(2, 19);
-
 
   double AbsoluteError = utils::abs(Operand - Shadow->val);
   double RelativeError = utils::abs((AbsoluteError / Shadow->val) * 100);
@@ -258,11 +257,12 @@ bool InterflopBackend<FPType>::Check(FPType Operand,
   if (Res) {
     // We may want to store additional information
     auto &Context = InterflopContext::getInstance();
-    Context.getStacktraceRecorder().Record();
-    if (Context.Flags().WarningEnabled()) {
 
+    if (Context.Flags().StackRecording())
+      Context.getStacktraceRecorder().Record();
+    if (Context.Flags().WarningEnabled())
       CheckFail<VectorSize>(Operand, Shadow);
-    }
+
     if (Context.Flags().ExitOnError())
       exit(1);
   }
@@ -293,11 +293,13 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
   if (Value != Res) {
     // We may want to store additional information
     auto &Context = InterflopContext::getInstance();
-    Context.getStacktraceRecorder().Record();
-    if (Context.Flags().WarningEnabled()) {
+    
+    if (Context.Flags().StackRecording())
+      Context.getStacktraceRecorder().Record();
+    if (Context.Flags().WarningEnabled())
       FCmpCheckFail<VectorSize>(LeftOperand, LeftShadow, RightOperand,
                                 RightShadow);
-    }
+
     if (Context.Flags().ExitOnError())
       exit(1);
   }

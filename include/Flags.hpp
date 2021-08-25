@@ -28,6 +28,9 @@ public:
   void WarningEnabled(bool const value) { _WarningEnabled = value; }
   bool WarningEnabled() const { return _WarningEnabled; }
 
+  void StackRecording(bool const value) { _StackRecording = value; }
+  bool StackRecording() const { return _StackRecording; }
+
   void WarningLimit(size_t const value) { _WarningLimit = value; }
   size_t WarningLimit() const { return _WarningLimit; }
 
@@ -39,9 +42,11 @@ public:
 
 private:
   // If true, the program will exit on the first error.
+  // FIXME : calling conventions
   bool _ExitOnError = false;
   bool _PrintStatsOnExit = true;
   bool _WarningEnabled = false;
+  bool _StackRecording = false;
   bool _UseColor = true;
   // Maximum number of warnings before exiting.
   // 0 means no limit.

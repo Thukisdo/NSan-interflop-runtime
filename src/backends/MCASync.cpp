@@ -341,7 +341,9 @@ bool InterflopBackend<FPType>::Check(FPType Operand,
     Res = CheckInternal(Operand, Shadow[0]);
   if (Res) {
     auto &Context = InterflopContext::getInstance();
-    Context.getStacktraceRecorder().Record();
+
+    if (Context.Flags().StackRecording())
+      Context.getStacktraceRecorder().Record();
 
     // Print a warning
     if (Context.Flags().WarningEnabled()) {
