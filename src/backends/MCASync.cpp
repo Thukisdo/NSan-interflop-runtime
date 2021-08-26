@@ -204,13 +204,13 @@ bool FCmpInternal(FCmpOpcode Opcode, MCASyncShadow **LeftShadow,
 // Used to handle casting to bigger precision
 template <typename ScalarVT>
 using ExtendedScalar =
-    typename std::conditional<std::is_same<ScalarVT, float>::value, double,
+    typename std::conditional<std::is_same_v<ScalarVT, float>, double,
                               __float128>::type;
 
 // Will either be MCAShadow128 or MCAShadow64 depending on FPType
 template <typename FPType>
 using ShadowTypeFor = typename std::conditional<
-    std::is_same<typename FPTypeInfo<FPType>::ScalarType, OpaqueShadow>::value,
+    std::is_same_v<FPType, float>,
     MCASyncShadow, MCASyncLargeShadow>::type;
 
 template <typename FPType>

@@ -21,6 +21,7 @@ void BackendInit() noexcept {
   if (utils::GetNSanShadowScale() != 2) {
     fprintf(stderr, "Warning: [DoublePrec] backend requires 2x shadow\n");
     fprintf(stderr, "Recompile using flags -mllvm -nsan-shadowscale=2\n");
+    exit(1);
   }
 }
 
@@ -144,10 +145,10 @@ void CastInternal(FPType a, ShadowType **sa, DestType **sb) {
 
 } // namespace
 
-// Will either be MCAShadow128 or MCAShadow64 depending on FPType
+// Will either be DoubleprecShadow128 or DoubleprecShadow64 depending on FPType
 template <typename FPType>
 using ShadowTypeFor = typename std::conditional<
-    std::is_same<typename FPTypeInfo<FPType>::ScalarType, OpaqueShadow>::value,
+    std::is_same_v<float, FPType>,
     DoublePrecShadow, DoublePrecLargeShadow>::type;
 
 // Unary operator overload
@@ -286,12 +287,11 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
       reinterpret_cast<ShadowTypeFor<FPType> **>(RightShadowOperand);
 
   // We perfom the same comparisons in the shadow space
-  // We should take care of unordered comparisons
   bool Res = FCmp<VectorSize>(Opcode, LeftShadow, RightShadow);
 
   // We expect both comparison to be equal, else we emit a warning
   if (Value != Res) {
-    // We may want to store additional information
+    // We may want to store additional informations
     auto &Context = InterflopContext::getInstance();
     
     if (Context.Flags().StackRecording())
