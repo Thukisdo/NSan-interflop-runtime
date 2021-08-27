@@ -210,7 +210,7 @@ using ExtendedScalar =
 // Will either be MCAShadow128 or MCAShadow64 depending on FPType
 template <typename FPType>
 using ShadowTypeFor = typename std::conditional<
-    std::is_same_v<FPType, float>,
+    std::is_same_v<float, typename FPTypeInfo<FPType>::ScalarType>,
     MCASyncShadow, MCASyncLargeShadow>::type;
 
 template <typename FPType>

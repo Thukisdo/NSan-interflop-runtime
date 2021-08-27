@@ -148,7 +148,7 @@ void CastInternal(FPType a, ShadowType **sa, DestType **sb) {
 // Will either be DoubleprecShadow128 or DoubleprecShadow64 depending on FPType
 template <typename FPType>
 using ShadowTypeFor = typename std::conditional<
-    std::is_same_v<float, FPType>,
+    std::is_same_v<float, typename FPTypeInfo<FPType>::ScalarType>,
     DoublePrecShadow, DoublePrecLargeShadow>::type;
 
 // Unary operator overload
