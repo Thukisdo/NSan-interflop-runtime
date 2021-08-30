@@ -17,18 +17,13 @@ def TypeToMetaFloat(Type: str, VSize=1):
     if Type == "longdouble" :
         Type = "long double"
     return f"MetaFloat<{Type}, {VSize}>"
-    if Type == "longdouble":
-        if VSize == 1:
-            return "long double"
-        return GetVectorPrefix(VSize) + "ldouble"
-    return GetVectorPrefix(VSize) + Type
     
 def MetaFloatToFpType(Type: str) :
     return f"{Type}::FPType"
 
 def FPTypeToShadow(Type: str, VSize=1):
     ShadowType = "OpaqueShadow" if Type == "float" else "OpaqueLargeShadow"
-    return GetVectorPrefix(VSize) + ShadowType + ("*" if VSize == 1 else "")
+    return ShadowType + ("*" if VSize == 1 else "**")
 
 
 def FPPrefix(Type: str, VSize=1):
@@ -192,6 +187,7 @@ def GenerateInterface():
             GenerateFCmpCheck(Type, VSize, File)
             GenerateCast(Type, VSize, File)
             VSize *= 2
+
 
 
 GenerateInterface()

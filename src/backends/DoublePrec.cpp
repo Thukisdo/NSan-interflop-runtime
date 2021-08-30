@@ -16,8 +16,9 @@ namespace interflop {
 
 using namespace doubleprec;
 
-void BackendInit() noexcept {
-  InterflopContext::getInstance().setBackendName("DoublePrec");
+void BackendInit(InterflopContext &Context) noexcept {
+  Context.setBackendName("DoublePrec");
+  
   if (utils::GetNSanShadowScale() != 2) {
     fprintf(stderr, "Warning: [DoublePrec] backend requires 2x shadow\n");
     fprintf(stderr, "Recompile using flags -mllvm -nsan-shadowscale=2\n");
@@ -25,7 +26,7 @@ void BackendInit() noexcept {
   }
 }
 
-void BackendFinalize() noexcept {
+void BackendFinalize(InterflopContext &Context) noexcept {
   // Nothing to do
 }
 

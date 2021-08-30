@@ -1,9 +1,9 @@
 
 
 
-#FIXME: this file shouldn't exist, and is only here for testing purposes
+# FIXME: this file shouldn't exist, and is only here for testing purposes
 # Should be removed in the future
-# and nsan tests should be handled
+# and nsan tests should be handled otherwise
 
 # Compiler path
 CC = ../../build/bin/clang
