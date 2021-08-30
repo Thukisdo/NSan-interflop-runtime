@@ -18,18 +18,30 @@ InterflopContext &InterflopContext::getInstance() {
 }
 
 void InterflopContext::Init() {
+
+  std::scoped_lock<std::shared_mutex> lock(MainContextMutex);
+
+  if (Initialized)
+    return;
+
   // We should perfom some initialization here
-  // This guard is required
+
   Initialized = true;
 }
 
 InterflopContext::~InterflopContext() {
-  // If initialization failed, std::cout might not be initialized correctly so
-  // we shouldn't print anything, or replace StacktraceRecorder::print() to use
-  // printf instead
-  if (Initialized)
+
+  std::scoped_lock<std::shared_mutex> lock(MainContextMutex);
+
+  // A failed initialization may indicate a failure in the progran init sequence
+  // causing std::cout to be uninitialized.
+  if (Initialized) {
     WarningRecorder.print(BackendName, std::cout);
-  BackendFinalize();
+
+    // FIXME: should probably call BackendFinalize() even if not initialized
+    // and store a global status flag to indicate the status
+    BackendFinalize(*this);
+  }
 }
 
 } // namespace interflop

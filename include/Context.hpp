@@ -15,6 +15,8 @@
 #include "Utils.hpp"
 #include <iostream>
 #include <memory>
+#include <thread>
+#include <shared_mutex>
 
 namespace interflop {
 
@@ -42,6 +44,8 @@ private:
   std::string BackendName{"Undefined_Backend"};
   RuntimeFlags RTFlags;
   StacktraceRecorder WarningRecorder;
+
+  std::shared_mutex MainContextMutex;
 };
 
 } // namespace interflop

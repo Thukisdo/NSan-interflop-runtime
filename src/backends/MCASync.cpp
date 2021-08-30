@@ -13,8 +13,14 @@
 
 namespace interflop {
 
-// Rounding functions and shadow helper methods
+/* ========================================================================= */
+/* MCASync backend specific functions and structures                         */
+/*                                                                           */
+/*                                                                           */
+/*                                                                           */
+/* ========================================================================= */
 namespace mcasync {
+
 std::ostream &operator<<(std::ostream &os, MCASyncShadow const &s) {
   auto mean = (s[0] + s[1] + s[2]) / 3;
   std::cout << "[mean: " << mean << ", " << s[0] << ", " << s[1] << ", " << s[2]
@@ -29,7 +35,7 @@ std::ostream &operator<<(std::ostream &os, MCASyncLargeShadow const &s) {
   return os;
 }
 
-// Helper struct for type puning double -> ui64
+// Helper struct for type puning double -> i64
 struct Float64 {
   Float64(double f) : f64(f) {}
   Float64(int64_t i) : i64(i) {}
@@ -40,7 +46,7 @@ struct Float64 {
   };
 };
 
-// Helper struct for type puning f128 -> ui128
+// Helper struct for type puning f128 -> i128
 struct Float128 {
   Float128(__float128 f) : f128(f) {}
   Float128(__int128_t i) : i128(i) {}
@@ -83,7 +89,6 @@ float StochasticRound(double x) {
   return ExtendedFP.f64;
 }
 
-// FIXME: Redundant code, could use templates to only have one function
 double StochasticRound(__float128 x) {
   static Float128 oneF128 = 1.0;
   static Float128 eps_F64 = std::nextafter(
@@ -105,19 +110,24 @@ double StochasticRound(__float128 x) {
   // arithmetic bitshift and |1 to create a random integer that is in (-u/2,u/2)
   // always set last random bit to 1 to avoid the creation of -u/2
 
-  ExtendedFP.i128 = (ExtendedFP.i128 + (RandomBits >> 57)) | 1;
+  ExtendedFP.i128 = (ExtendedFP.i128 + (RandomBits >> 68)) | 1;
   return ExtendedFP.f128;
 }
 
 } // namespace mcasync
 
+/* ========================================================================= */
+/* MCASync backend implementation                                            */
+/*                                                                           */
+/*                                                                           */
+/*                                                                           */
+/* ========================================================================= */
+
 using namespace mcasync;
 
-// We we'll use the random function provided with interflop-utils
-// So no need for a new random generator
-void BackendInit() noexcept {
-  InterflopContext &Context = InterflopContext::getInstance();
+void BackendInit(InterflopContext &Context) noexcept {
   Context.setBackendName("MCA Synchrone");
+
   if (utils::GetNSanShadowScale() != 4) {
     fprintf(stderr, "Warning: MCA Synchrone backend requires 4x shadow\n");
     fprintf(stderr, "Recompile using flags -mllvm -nsan-shadowscale=4\n");
@@ -125,16 +135,15 @@ void BackendInit() noexcept {
   }
 }
 
-void BackendFinalize() noexcept {
+void BackendFinalize(InterflopContext &Context) noexcept {
   // Nothing to do
 }
 
 // Shadow struct and helper methods
 namespace {
 
-template <size_t VectorSize, typename FPType, typename MCASyncShadow,
-          typename DestType>
-void CastInternal(FPType a, MCASyncShadow **Shadow, DestType Res) {
+template <size_t VectorSize, typename MCASyncShadow, typename DestType>
+void CastInternal(MCASyncShadow **Shadow, DestType Res) {
   // We just copy every value
   for (int I = 0; I < VectorSize; I++) {
     Res[I]->val[0] = Shadow[I]->val[0];
@@ -143,10 +152,10 @@ void CastInternal(FPType a, MCASyncShadow **Shadow, DestType Res) {
   }
 }
 
-template <typename ScalarVT, typename MCASyncShadow>
-bool CheckInternal(ScalarVT Operand, MCASyncShadow *Shadow) {
+template <typename MCASyncShadow>
+bool CheckInternal(MCASyncShadow *Shadow) {
 
-  double Mean = (Shadow->val[0] + Shadow->val[1] + Shadow->val[2]) / 3.0;
+  double Mean = Shadow->mean();
 
   double Variance = 0;
   for (int I = 0; I < 3; I++)
@@ -166,12 +175,8 @@ bool FCmpInternal(FCmpOpcode Opcode, MCASyncShadow **LeftShadow,
 
   for (int I = 0; Res && (I < VectorSize); I++) {
 
-    double MeanLeftOp = (LeftShadow[I]->val[0] + LeftShadow[I]->val[1] +
-                         LeftShadow[I]->val[2]) /
-                        3;
-    double MeanRightOp = (RightShadow[I]->val[0] + RightShadow[I]->val[1] +
-                          RightShadow[I]->val[2]) /
-                         3;
+    double MeanLeftOp = LeftShadow[I]->mean();
+    double MeanRightOp = RightShadow[I]->mean();
 
     // Handle unordered comparisons
     if (Opcode < UnorderedFCmp &&
@@ -208,17 +213,19 @@ using ExtendedScalar =
                               __float128>::type;
 
 // Will either be MCAShadow128 or MCAShadow64 depending on FPType
-template <typename FPType>
-using ShadowTypeFor = typename std::conditional<
-    std::is_same_v<float, typename FPTypeInfo<FPType>::ScalarType>,
-    MCASyncShadow, MCASyncLargeShadow>::type;
+template <typename ShadowType>
+using MCASyncShadowFor =
+    typename std::conditional<std::is_same_v<OpaqueShadow, ShadowType>,
+                              MCASyncShadow, MCASyncLargeShadow>::type;
 
-template <typename FPType>
-FPType InterflopBackend<FPType>::Neg(FPType Operand, ShadowType **OperandShadow,
-                                     ShadowType **Res) {
+template <typename MetaFloat>
+typename MetaFloat::FPType
+InterflopBackend<MetaFloat>::Neg(FPType Operand, ShadowType **OperandShadow,
+                                 ShadowType **Res) {
 
-  auto Shadow = reinterpret_cast<ShadowTypeFor<FPType> **>(OperandShadow);
-  auto ResShadow = reinterpret_cast<ShadowTypeFor<FPType> **>(Res);
+  auto Shadow =
+      reinterpret_cast<MCASyncShadowFor<ShadowType> **>(OperandShadow);
+  auto ResShadow = reinterpret_cast<MCASyncShadowFor<ShadowType> **>(Res);
 
   for (int I = 0; I < VectorSize; I++) {
     ResShadow[I]->val[0] = -Shadow[I]->val[0];
@@ -228,17 +235,17 @@ FPType InterflopBackend<FPType>::Neg(FPType Operand, ShadowType **OperandShadow,
   return -Operand;
 }
 
-template <typename FPType>
-FPType
-InterflopBackend<FPType>::Add(FPType LeftOp, ShadowType **LeftOpaqueShadow,
-                              FPType RightOp, ShadowType **RightOpaqueShadow,
-                              ShadowType **Res) {
+template <typename MetaFloat>
+typename MetaFloat::FPType
+InterflopBackend<MetaFloat>::Add(FPType LeftOp, ShadowType **LeftOpaqueShadow,
+                                 FPType RightOp, ShadowType **RightOpaqueShadow,
+                                 ShadowType **Res) {
 
   auto LeftShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(LeftOpaqueShadow);
+      reinterpret_cast<MCASyncShadowFor<ShadowType> **>(LeftOpaqueShadow);
   auto RightShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(RightOpaqueShadow);
-  auto ResShadow = reinterpret_cast<ShadowTypeFor<FPType> **>(Res);
+      reinterpret_cast<MCASyncShadowFor<ShadowType> **>(RightOpaqueShadow);
+  auto ResShadow = reinterpret_cast<MCASyncShadowFor<ShadowType> **>(Res);
 
   // Perform every add in extended precision and add a rounding noise
   for (int I = 0; I < VectorSize; I++) {
@@ -252,17 +259,17 @@ InterflopBackend<FPType>::Add(FPType LeftOp, ShadowType **LeftOpaqueShadow,
   return LeftOp + RightOp;
 }
 
-template <typename FPType>
-FPType
-InterflopBackend<FPType>::Sub(FPType LeftOp, ShadowType **LeftOpaqueShadow,
-                              FPType RightOp, ShadowType **RightOpaqueShadow,
-                              ShadowType **Res) {
+template <typename MetaFloat>
+typename MetaFloat::FPType
+InterflopBackend<MetaFloat>::Sub(FPType LeftOp, ShadowType **LeftOpaqueShadow,
+                                 FPType RightOp, ShadowType **RightOpaqueShadow,
+                                 ShadowType **Res) {
 
   auto LeftShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(LeftOpaqueShadow);
+      reinterpret_cast<MCASyncShadowFor<ShadowType> **>(LeftOpaqueShadow);
   auto RightShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(RightOpaqueShadow);
-  auto ResShadow = reinterpret_cast<ShadowTypeFor<FPType> **>(Res);
+      reinterpret_cast<MCASyncShadowFor<ShadowType> **>(RightOpaqueShadow);
+  auto ResShadow = reinterpret_cast<MCASyncShadowFor<ShadowType> **>(Res);
 
   // Perform every sub in extended precision and add a rounding noise
   for (int I = 0; I < VectorSize; I++) {
@@ -276,17 +283,17 @@ InterflopBackend<FPType>::Sub(FPType LeftOp, ShadowType **LeftOpaqueShadow,
   return LeftOp - RightOp;
 }
 
-template <typename FPType>
-FPType
-InterflopBackend<FPType>::Mul(FPType LeftOp, ShadowType **LeftOpaqueShadow,
-                              FPType RightOp, ShadowType **RightOpaqueShadow,
-                              ShadowType **Res) {
+template <typename MetaFloat>
+typename MetaFloat::FPType
+InterflopBackend<MetaFloat>::Mul(FPType LeftOp, ShadowType **LeftOpaqueShadow,
+                                 FPType RightOp, ShadowType **RightOpaqueShadow,
+                                 ShadowType **Res) {
 
   auto LeftShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(LeftOpaqueShadow);
+      reinterpret_cast<MCASyncShadowFor<ShadowType> **>(LeftOpaqueShadow);
   auto RightShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(RightOpaqueShadow);
-  auto ResShadow = reinterpret_cast<ShadowTypeFor<FPType> **>(Res);
+      reinterpret_cast<MCASyncShadowFor<ShadowType> **>(RightOpaqueShadow);
+  auto ResShadow = reinterpret_cast<MCASyncShadowFor<ShadowType> **>(Res);
 
   // Perform every mul in extended precision and add a rounding noise
   for (int I = 0; I < VectorSize; I++) {
@@ -300,17 +307,17 @@ InterflopBackend<FPType>::Mul(FPType LeftOp, ShadowType **LeftOpaqueShadow,
   return LeftOp * RightOp;
 }
 
-template <typename FPType>
-FPType
-InterflopBackend<FPType>::Div(FPType LeftOp, ShadowType **LeftOpaqueShadow,
-                              FPType RightOp, ShadowType **RightOpaqueShadow,
-                              ShadowType **Res) {
+template <typename MetaFloat>
+typename MetaFloat::FPType
+InterflopBackend<MetaFloat>::Div(FPType LeftOp, ShadowType **LeftOpaqueShadow,
+                                 FPType RightOp, ShadowType **RightOpaqueShadow,
+                                 ShadowType **Res) {
 
   auto LeftShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(LeftOpaqueShadow);
+      reinterpret_cast<MCASyncShadowFor<ShadowType> **>(LeftOpaqueShadow);
   auto RightShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(RightOpaqueShadow);
-  auto ResShadow = reinterpret_cast<ShadowTypeFor<FPType> **>(Res);
+      reinterpret_cast<MCASyncShadowFor<ShadowType> **>(RightOpaqueShadow);
+  auto ResShadow = reinterpret_cast<MCASyncShadowFor<ShadowType> **>(Res);
 
   // Perform every div in extended precision and add a rounding noise
   for (int I = 0; I < VectorSize; I++) {
@@ -324,21 +331,22 @@ InterflopBackend<FPType>::Div(FPType LeftOp, ShadowType **LeftOpaqueShadow,
   return LeftOp / RightOp;
 }
 
-template <typename FPType>
-bool InterflopBackend<FPType>::Check(FPType Operand,
-                                     ShadowType **ShadowOperand) {
+template <typename MetaFloat>
+bool InterflopBackend<MetaFloat>::Check(FPType Operand,
+                                        ShadowType **ShadowOperand) {
 
-  auto Shadow = reinterpret_cast<ShadowTypeFor<FPType> **>(ShadowOperand);
+  auto Shadow =
+      reinterpret_cast<MCASyncShadowFor<ShadowType> **>(ShadowOperand);
 
   bool Res = 0;
   // We unvectorize the check
   // We shall not acess Operand[I] if we're not working on vectors
   if constexpr (VectorSize > 1) {
     for (int I = 0; not Res && (I < VectorSize); I++)
-      Res = Res || CheckInternal(Operand[I], Shadow[I]);
+      Res = Res || CheckInternal(Shadow[I]);
     return Res;
   } else
-    Res = CheckInternal(Operand, Shadow[0]);
+    Res = CheckInternal(Shadow[0]);
   if (Res) {
     auto &Context = InterflopContext::getInstance();
 
@@ -370,17 +378,15 @@ bool InterflopBackend<FPType>::Check(FPType Operand,
   return Res;
 }
 
-template <typename FPType>
-bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
-                                         ShadowType **LeftShadowOperand,
-                                         FPType RightOperand,
-                                         ShadowType **RightShadowOperand,
-                                         bool Value) {
+template <typename MetaFloat>
+bool InterflopBackend<MetaFloat>::CheckFCmp(
+    FCmpOpcode Opcode, FPType LeftOperand, ShadowType **LeftShadowOperand,
+    FPType RightOperand, ShadowType **RightShadowOperand, bool Value) {
 
   auto LeftShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(LeftShadowOperand);
+      reinterpret_cast<MCASyncShadowFor<ShadowType> **>(LeftShadowOperand);
   auto RightShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(RightShadowOperand);
+      reinterpret_cast<MCASyncShadowFor<ShadowType> **>(RightShadowOperand);
   bool Res = FCmpInternal<VectorSize>(Opcode, LeftShadow, RightShadow);
   // We expect both comparison to be equal, else we print an error
   if (Value != Res) {
@@ -423,40 +429,43 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
   return Res;
 }
 
-template <typename FPType>
-void InterflopBackend<FPType>::CastToFloat(FPType Operand,
-                                           ShadowType **OperandShadow,
-                                           OpaqueShadow **Res) {
-  auto Shadow = reinterpret_cast<ShadowTypeFor<FPType> **>(OperandShadow);
+template <typename MetaFloat>
+void InterflopBackend<MetaFloat>::CastToFloat(FPType Operand,
+                                              ShadowType **OperandShadow,
+                                              OpaqueShadow **Res) {
+  auto Shadow =
+      reinterpret_cast<MCASyncShadowFor<ShadowType> **>(OperandShadow);
   auto Destination = reinterpret_cast<MCASyncShadow **>(Res);
 
-  CastInternal<VectorSize>(Operand, Shadow, Destination);
+  CastInternal<VectorSize>(Shadow, Destination);
 }
 
-template <typename FPType>
-void InterflopBackend<FPType>::CastToDouble(FPType Operand,
-                                            ShadowType **OperandShadow,
-                                            OpaqueLargeShadow **Res) {
-  auto Shadow = reinterpret_cast<ShadowTypeFor<FPType> **>(OperandShadow);
+template <typename MetaFloat>
+void InterflopBackend<MetaFloat>::CastToDouble(FPType Operand,
+                                               ShadowType **OperandShadow,
+                                               OpaqueLargeShadow **Res) {
+  auto Shadow =
+      reinterpret_cast<MCASyncShadowFor<ShadowType> **>(OperandShadow);
   auto Destination = reinterpret_cast<MCASyncLargeShadow **>(Res);
 
-  CastInternal<VectorSize>(Operand, Shadow, Destination);
+  CastInternal<VectorSize>(Shadow, Destination);
 }
 
-template <typename FPType>
-void InterflopBackend<FPType>::CastToLongdouble(FPType Operand,
-                                                ShadowType **OperandShadow,
-                                                OpaqueLargeShadow **Res) {
-  auto Shadow = reinterpret_cast<ShadowTypeFor<FPType> **>(OperandShadow);
+template <typename MetaFloat>
+void InterflopBackend<MetaFloat>::CastToLongdouble(FPType Operand,
+                                                   ShadowType **OperandShadow,
+                                                   OpaqueLargeShadow **Res) {
+  auto Shadow =
+      reinterpret_cast<MCASyncShadowFor<ShadowType> **>(OperandShadow);
   auto Destination = reinterpret_cast<MCASyncLargeShadow **>(Res);
 
-  CastInternal<VectorSize>(Operand, Shadow, Destination);
+  CastInternal<VectorSize>(Shadow, Destination);
 }
 
-template <typename FPType>
-void InterflopBackend<FPType>::MakeShadow(FPType Source, ShadowType **Res) {
+template <typename MetaFloat>
+void InterflopBackend<MetaFloat>::MakeShadow(FPType Source, ShadowType **Res) {
 
-  auto ResShadow = reinterpret_cast<ShadowTypeFor<FPType> **>(Res);
+  auto ResShadow = reinterpret_cast<MCASyncShadowFor<ShadowType> **>(Res);
 
   for (int I = 0; I < VectorSize; I++) {
     // We need a constexpr if to prevent the compiler from evaluating a[I]
@@ -473,19 +482,19 @@ void InterflopBackend<FPType>::MakeShadow(FPType Source, ShadowType **Res) {
   }
 }
 
-template class InterflopBackend<float>;
-template class InterflopBackend<v2float>;
-template class InterflopBackend<v4float>;
-template class InterflopBackend<v8float>;
-template class InterflopBackend<v16float>;
+template class InterflopBackend<MetaFloat<float, 1>>;
+template class InterflopBackend<MetaFloat<float, 2>>;
+template class InterflopBackend<MetaFloat<float, 4>>;
+template class InterflopBackend<MetaFloat<float, 8>>;
+template class InterflopBackend<MetaFloat<float, 16>>;
 
-template class InterflopBackend<double>;
-template class InterflopBackend<v2double>;
-template class InterflopBackend<v4double>;
-template class InterflopBackend<v8double>;
+template class InterflopBackend<MetaFloat<double, 1>>;
+template class InterflopBackend<MetaFloat<double, 2>>;
+template class InterflopBackend<MetaFloat<double, 4>>;
+template class InterflopBackend<MetaFloat<double, 8>>;
 
-template class InterflopBackend<long double>;
-template class InterflopBackend<v2ldouble>;
-template class InterflopBackend<v4ldouble>;
+template class InterflopBackend<MetaFloat<long double, 1>>;
+template class InterflopBackend<MetaFloat<long double, 2>>;
+template class InterflopBackend<MetaFloat<long double, 4>>;
 
 } // namespace interflop

@@ -35,11 +35,14 @@ enum FCmpOpcode {
   FCmp_ule
 };
 
+// Forward declaration to avoid circular inclusion
+class InterflopContext;
+
 // Guaranteed to be called before the first call to the backend.
 // std::cout and other std::streams should not be used in those functions
 // as they are called before std:: initialization
-void BackendInit() noexcept;
-void BackendFinalize() noexcept;
+void BackendInit(InterflopContext &Context) noexcept;
+void BackendFinalize(InterflopContext &Context) noexcept;
 
 // Helper class for recording warnings.
 // Will record a stacktrace when a warning is emited, and print every
@@ -67,11 +70,11 @@ private:
 // The context is reponsible for allowing them at startup
 // FIXME: With c++20, we should use concepts for proper template usage
 // maybe something like Shadowable<FPType> ?
-template <typename FPType> class InterflopBackend {
+template <typename MetaFP> class InterflopBackend {
 public:
-  using ScalarVT = typename FPTypeInfo<FPType>::ScalarType;
-  using ShadowType = typename FPTypeInfo<FPType>::ShadowType;
-  static constexpr size_t VectorSize = FPTypeInfo<FPType>::VectorSize;
+  using FPType = typename MetaFP::FPType;
+  using ShadowType = typename MetaFP::ShadowType;
+  static constexpr size_t VectorSize = MetaFP::VectorSize;
 
   // Should return -a and res = -sa
   FPType Neg(FPType a, ShadowType **sa, ShadowType **res);

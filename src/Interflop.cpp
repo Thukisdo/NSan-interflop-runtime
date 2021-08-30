@@ -60,6 +60,6 @@ extern "C" void __interflop_init() {
     return;
   Initialized = true;
 
-  BackendInit();
-  InterflopContext::getInstance().Init();
+  auto& Context = InterflopContext::getInstance();
+  BackendInit(Context);
 }

@@ -13,13 +13,18 @@ def GetVectorPrefix(VSize=1):
     return "v" + str(VSize)
 
 
-def FPTypeToVector(Type: str, VSize=1):
+def TypeToMetaFloat(Type: str, VSize=1):
+    if Type == "longdouble" :
+        Type = "long double"
+    return f"MetaFloat<{Type}, {VSize}>"
     if Type == "longdouble":
         if VSize == 1:
             return "long double"
         return GetVectorPrefix(VSize) + "ldouble"
     return GetVectorPrefix(VSize) + Type
-
+    
+def MetaFloatToFpType(Type: str) :
+    return f"{Type}::FPType"
 
 def FPTypeToShadow(Type: str, VSize=1):
     ShadowType = "OpaqueShadow" if Type == "float" else "OpaqueLargeShadow"
@@ -58,13 +63,14 @@ def GenerateHelperFunction(File=None):
 
 
 def GenerateConstructor(Type: str, VSize=1, File=None):
-    CType = FPTypeToVector(Type, VSize)
+    MetaFloat = TypeToMetaFloat(Type, VSize)
+    CType = MetaFloatToFpType(MetaFloat)
     ShadowType = FPTypeToShadow(Type, VSize)
     Prefix = FPPrefix(Type, VSize)
     File.write(
         f"extern \"C\" void {Prefix}_make_shadow({CType} a, {ShadowType} sa)")
     File.write(" {\n")
-    File.write(f"\tBackend<{CType}> Backend;\n")
+    File.write(f"\tBackend<{MetaFloat}> Backend;\n")
     if VSize == 1:
         File.write(f"\tBackend.MakeShadow(a, &sa);\n")
     else:
@@ -73,13 +79,14 @@ def GenerateConstructor(Type: str, VSize=1, File=None):
 
 
 def GenerateUnary(Type: str, VSize=1, File=None):
-    CType = FPTypeToVector(Type, VSize)
+    MetaFloat = TypeToMetaFloat(Type, VSize)
+    CType = MetaFloatToFpType(MetaFloat)
     ShadowType = FPTypeToShadow(Type, VSize)
     Prefix = FPPrefix(Type, VSize)
     File.write(
         f"extern \"C\" {CType} {Prefix}_neg({CType} a, {ShadowType} sa, {ShadowType} res)")
     File.write(" {\n")
-    File.write(f"\tBackend<{CType}> Backend;\n")
+    File.write(f"\tBackend<{MetaFloat}> Backend;\n")
     if VSize == 1:
         File.write(f"\treturn Backend.Neg(a, &sa, &res);\n")
     else:
@@ -89,14 +96,15 @@ def GenerateUnary(Type: str, VSize=1, File=None):
 
 def GenerateBinary(Type: str, VSize=1, File=None):
     BinaryOps = ["add", "sub", "mul", "div"]
-    CType = FPTypeToVector(Type, VSize)
+    MetaFloat = TypeToMetaFloat(Type, VSize)
+    CType = MetaFloatToFpType(MetaFloat)
     ShadowType = FPTypeToShadow(Type, VSize)
     Prefix = FPPrefix(Type, VSize)
     for Op in BinaryOps:
         File.write(
             f"extern \"C\" {CType} {Prefix}_f{Op}({CType} a, {ShadowType} sa, {CType} b, {ShadowType} sb, {ShadowType} res)")
         File.write(" {\n")
-        File.write(f"\tBackend<{CType}> Backend;\n")
+        File.write(f"\tBackend<{MetaFloat}> Backend;\n")
         Op = Op.capitalize()
         if VSize == 1:
             File.write(f"\treturn Backend.{Op}(a, &sa, b, &sb, &res);\n")
@@ -107,14 +115,15 @@ def GenerateBinary(Type: str, VSize=1, File=None):
 
 def GenerateCheck(Type: str, File):
     BinaryOps = ["add", "sub", "mul", "div"]
-    CType = FPTypeToVector(Type)
+    MetaFloat = TypeToMetaFloat(Type, 1)
+    CType = MetaFloatToFpType(MetaFloat)
     ShadowType = FPTypeToShadow(Type)
     Prefix = FPPrefix(Type)
 
     File.write(
         f"extern \"C\" int {Prefix}_check({CType} a, {ShadowType} sa)")
     File.write(" {\n")
-    File.write(f"\tBackend<{CType}> Backend;\n")
+    File.write(f"\tBackend<{MetaFloat}> Backend;\n")
     File.write(f"\treturn Backend.Check(a, &sa);\n")
     File.write("}\n\n")
 
@@ -124,7 +133,8 @@ def GenerateFCmpCheck(Type: str, VSize: int, File):
                "ole", "ueq", "une", "ugt", "uge", "ult", "ule"]
     CmpOps = {"eq": "==", "ne": "!=", "gt": ">",
               "ge": ">=", "lt": "<", "le": "<="}
-    CType = FPTypeToVector(Type, VSize)
+    MetaFloat = TypeToMetaFloat(Type, VSize)
+    CType = MetaFloatToFpType(MetaFloat)
     ShadowType = FPTypeToShadow(Type, VSize)
     Prefix = FPPrefix(Type, VSize)
 
@@ -132,7 +142,7 @@ def GenerateFCmpCheck(Type: str, VSize: int, File):
         File.write(
             f"extern \"C\" int {Prefix}_fcmp_{Op}({CType} a, {ShadowType} sa, {CType} b, {ShadowType} sb)")
         File.write(" {\n")
-        File.write(f"\tBackend<{CType}> Backend;\n")
+        File.write(f"\tBackend<{MetaFloat}> Backend;\n")
         if VSize == 1:
             File.write(
                 f"\treturn Backend.CheckFCmp(FCmp_{Op}, a, &sa, b, &sb, a {CmpOps[Op[1:]]} b);\n")
@@ -143,7 +153,8 @@ def GenerateFCmpCheck(Type: str, VSize: int, File):
 
 
 def GenerateCast(Type: str, VSize: int, File=None):
-    CType = FPTypeToVector(Type, VSize)
+    MetaFloat = TypeToMetaFloat(Type, VSize)
+    CType = MetaFloatToFpType(MetaFloat)
     ShadowType = FPTypeToShadow(Type, VSize)
     Prefix = FPPrefix(Type, VSize)
     Casts = {"float": "CastToFloat", "double": "CastToDouble",
@@ -157,7 +168,7 @@ def GenerateCast(Type: str, VSize: int, File=None):
         File.write(
             f"extern \"C\" void {Prefix}_{DestType}_cast({CType} a, {ShadowType} sa, {ShadowDestType} res)")
         File.write(" {\n")
-        File.write(f"\tBackend<{CType}> Backend;\n")
+        File.write(f"\tBackend<{MetaFloat}> Backend;\n")
         if VSize == 1:
             File.write(
                 f"\tBackend.{Casts[DestType]}(a, &sa, &res);\n")

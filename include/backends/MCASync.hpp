@@ -38,6 +38,8 @@ struct MCASyncShadow {
     assert(index < 3);
     return val[index];
   }
+
+  float mean() const { return (val[0] + val[1] + val[2]) / 3; }
 };
 
 struct MCASyncLargeShadow {
@@ -54,6 +56,8 @@ struct MCASyncLargeShadow {
     assert(index < 3);
     return val[index];
   }
+
+  float mean() const { return (val[0] + val[1] + val[2]) / 3; }
 };
 
 static_assert(sizeof(MCASyncShadow) == 16, "Invalid shadow size");

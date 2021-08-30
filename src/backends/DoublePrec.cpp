@@ -146,17 +146,20 @@ void CastInternal(FPType a, ShadowType **sa, DestType **sb) {
 } // namespace
 
 // Will either be DoubleprecShadow128 or DoubleprecShadow64 depending on FPType
-template <typename FPType>
-using ShadowTypeFor = typename std::conditional<
-    std::is_same_v<float, typename FPTypeInfo<FPType>::ScalarType>,
-    DoublePrecShadow, DoublePrecLargeShadow>::type;
+template <typename ShadowType>
+using DoubleprecShadowFor =
+    typename std::conditional<std::is_same_v<OpaqueShadow, ShadowType>,
+                              DoublePrecShadow, DoublePrecLargeShadow>::type;
 
 // Unary operator overload
-template <typename FPType>
-FPType InterflopBackend<FPType>::Neg(FPType Operand, ShadowType **ShadowOperand,
-                                     ShadowType **Res) {
-  auto Shadow = reinterpret_cast<ShadowTypeFor<FPType> **>(ShadowOperand);
-  auto ResShadow = reinterpret_cast<ShadowTypeFor<FPType> **>(Res);
+template <typename MetaFloat>
+typename MetaFloat::FPType
+InterflopBackend<MetaFloat>::Neg(FPType Operand, ShadowType **ShadowOperand,
+                                 ShadowType **Res) {
+
+  auto Shadow =
+      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
+  auto ResShadow = reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(Res);
 
   for (int I = 0; I < VectorSize; I++) {
     ResShadow[I]->val = -Shadow[I]->val;
@@ -166,70 +169,62 @@ FPType InterflopBackend<FPType>::Neg(FPType Operand, ShadowType **ShadowOperand,
 
 // Binary operator overload
 // Replicate
-template <typename FPType>
-FPType InterflopBackend<FPType>::Add(FPType LeftOperand,
-                                     ShadowType **LeftShadowOperand,
-                                     FPType RightOperand,
-                                     ShadowType **const RightShadowOperand,
-                                     ShadowType **Res) {
+template <typename MetaFloat>
+typename MetaFloat::FPType InterflopBackend<MetaFloat>::Add(
+    FPType LeftOperand, ShadowType **LeftShadowOperand, FPType RightOperand,
+    ShadowType **const RightShadowOperand, ShadowType **Res) {
 
   auto LeftShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(LeftShadowOperand);
+      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(LeftShadowOperand);
   auto RightShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(RightShadowOperand);
-  auto ResShadow = reinterpret_cast<ShadowTypeFor<FPType> **>(Res);
+      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(RightShadowOperand);
+  auto ResShadow = reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(Res);
 
   for (int I = 0; I < VectorSize; I++)
     ResShadow[I]->val = LeftShadow[I]->val + RightShadow[I]->val;
   return LeftOperand + RightOperand;
 }
 
-template <typename FPType>
-FPType InterflopBackend<FPType>::Sub(FPType LeftOperand,
-                                     ShadowType **LeftShadowOperand,
-                                     FPType RightOperand,
-                                     ShadowType **const RightShadowOperand,
-                                     ShadowType **Res) {
+template <typename MetaFloat>
+typename MetaFloat::FPType InterflopBackend<MetaFloat>::Sub(
+    FPType LeftOperand, ShadowType **LeftShadowOperand, FPType RightOperand,
+    ShadowType **const RightShadowOperand, ShadowType **Res) {
   auto LeftShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(LeftShadowOperand);
+      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(LeftShadowOperand);
   auto RightShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(RightShadowOperand);
-  auto ResShadow = reinterpret_cast<ShadowTypeFor<FPType> **>(Res);
+      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(RightShadowOperand);
+  auto ResShadow = reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(Res);
 
   for (int I = 0; I < VectorSize; I++)
     ResShadow[I]->val = LeftShadow[I]->val - RightShadow[I]->val;
   return LeftOperand - RightOperand;
 }
 
-template <typename FPType>
-FPType InterflopBackend<FPType>::Mul(FPType LeftOperand,
-                                     ShadowType **LeftShadowOperand,
-                                     FPType RightOperand,
-                                     ShadowType **const RightShadowOperand,
-                                     ShadowType **Res) {
+template <typename MetaFloat>
+typename MetaFloat::FPType InterflopBackend<MetaFloat>::Mul(
+    FPType LeftOperand, ShadowType **LeftShadowOperand, FPType RightOperand,
+    ShadowType **const RightShadowOperand, ShadowType **Res) {
   auto LeftShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(LeftShadowOperand);
+      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(LeftShadowOperand);
   auto RightShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(RightShadowOperand);
-  auto ResShadow = reinterpret_cast<ShadowTypeFor<FPType> **>(Res);
+      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(RightShadowOperand);
+  auto ResShadow = reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(Res);
 
   for (int I = 0; I < VectorSize; I++)
     ResShadow[I]->val = LeftShadow[I]->val * RightShadow[I]->val;
   return LeftOperand * RightOperand;
 }
 
-template <typename FPType>
-FPType InterflopBackend<FPType>::Div(FPType LeftOperand,
-                                     ShadowType **LeftShadowOperand,
-                                     FPType RightOperand,
-                                     ShadowType **const RightShadowOperand,
-                                     ShadowType **Res) {
+template <typename MetaFloat>
+typename MetaFloat::FPType InterflopBackend<MetaFloat>::Div(
+    FPType LeftOperand, ShadowType **LeftShadowOperand, FPType RightOperand,
+    ShadowType **const RightShadowOperand, ShadowType **Res) {
 
   auto LeftShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(LeftShadowOperand);
+      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(LeftShadowOperand);
   auto RightShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(RightShadowOperand);
-  auto ResShadow = reinterpret_cast<ShadowTypeFor<FPType> **>(Res);
+      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(RightShadowOperand);
+  auto ResShadow = reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(Res);
 
   for (int I = 0; I < VectorSize; I++)
     ResShadow[I]->val = LeftShadow[I]->val / RightShadow[I]->val;
@@ -238,11 +233,12 @@ FPType InterflopBackend<FPType>::Div(FPType LeftOperand,
 
 // Called when we need to compare the native value with the shadow one to see
 // if they have diverged
-template <typename FPType>
-bool InterflopBackend<FPType>::Check(FPType Operand,
-                                     ShadowType **ShadowOperand) {
+template <typename MetaFloat>
+bool InterflopBackend<MetaFloat>::Check(FPType Operand,
+                                        ShadowType **ShadowOperand) {
 
-  auto **Shadow = reinterpret_cast<ShadowTypeFor<FPType> **>(ShadowOperand);
+  auto **Shadow =
+      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
 
   bool Res = 0;
   // We unvectorize the check
@@ -274,17 +270,15 @@ bool InterflopBackend<FPType>::Check(FPType Operand,
 // native result
 // To ease the implementaiton, we take the native result as a
 // parameter
-template <typename FPType>
-bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
-                                         ShadowType **LeftShadowOperand,
-                                         FPType RightOperand,
-                                         ShadowType **RightShadowOperand,
-                                         bool Value) {
+template <typename MetaFloat>
+bool InterflopBackend<MetaFloat>::CheckFCmp(
+    FCmpOpcode Opcode, FPType LeftOperand, ShadowType **LeftShadowOperand,
+    FPType RightOperand, ShadowType **RightShadowOperand, bool Value) {
 
   auto LeftShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(LeftShadowOperand);
+      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(LeftShadowOperand);
   auto RightShadow =
-      reinterpret_cast<ShadowTypeFor<FPType> **>(RightShadowOperand);
+      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(RightShadowOperand);
 
   // We perfom the same comparisons in the shadow space
   bool Res = FCmp<VectorSize>(Opcode, LeftShadow, RightShadow);
@@ -293,7 +287,7 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
   if (Value != Res) {
     // We may want to store additional informations
     auto &Context = InterflopContext::getInstance();
-    
+
     if (Context.Flags().StackRecording())
       Context.getStacktraceRecorder().Record();
     if (Context.Flags().WarningEnabled())
@@ -308,9 +302,9 @@ bool InterflopBackend<FPType>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
 }
 
 // We simply extend the original shadow to double precision
-template <typename FPType>
-void InterflopBackend<FPType>::MakeShadow(FPType Operand, ShadowType **Res) {
-  auto ResShadow = reinterpret_cast<ShadowTypeFor<FPType> **>(Res);
+template <typename MetaFloat>
+void InterflopBackend<MetaFloat>::MakeShadow(FPType Operand, ShadowType **Res) {
+  auto ResShadow = reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(Res);
 
   for (int I = 0; I < VectorSize; I++) {
     // We shall only use Operand[I] when working on vectors
@@ -321,31 +315,34 @@ void InterflopBackend<FPType>::MakeShadow(FPType Operand, ShadowType **Res) {
   }
 }
 
-template <typename FPType>
-void InterflopBackend<FPType>::CastToFloat(FPType Operand,
-                                           ShadowType **ShadowOperand,
-                                           OpaqueShadow **Res) {
-  auto Shadow = reinterpret_cast<ShadowTypeFor<FPType> **>(ShadowOperand);
+template <typename MetaFloat>
+void InterflopBackend<MetaFloat>::CastToFloat(FPType Operand,
+                                              ShadowType **ShadowOperand,
+                                              OpaqueShadow **Res) {
+  auto Shadow =
+      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
   auto ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
   CastInternal<VectorSize>(Operand, Shadow, ResShadow);
 }
 
-template <typename FPType>
-void InterflopBackend<FPType>::CastToDouble(FPType Operand,
-                                            ShadowType **ShadowOperand,
-                                            OpaqueLargeShadow **Res) {
-  auto Shadow = reinterpret_cast<ShadowTypeFor<FPType> **>(ShadowOperand);
+template <typename MetaFloat>
+void InterflopBackend<MetaFloat>::CastToDouble(FPType Operand,
+                                               ShadowType **ShadowOperand,
+                                               OpaqueLargeShadow **Res) {
+  auto Shadow =
+      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
   auto ResShadow = reinterpret_cast<DoublePrecLargeShadow **>(Res);
 
   CastInternal<VectorSize>(Operand, Shadow, ResShadow);
 }
 
-template <typename FPType>
-void InterflopBackend<FPType>::CastToLongdouble(FPType Operand,
-                                                ShadowType **ShadowOperand,
-                                                OpaqueLargeShadow **Res) {
-  auto Shadow = reinterpret_cast<ShadowTypeFor<FPType> **>(ShadowOperand);
+template <typename MetaFloat>
+void InterflopBackend<MetaFloat>::CastToLongdouble(FPType Operand,
+                                                   ShadowType **ShadowOperand,
+                                                   OpaqueLargeShadow **Res) {
+  auto Shadow =
+      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
   auto ResShadow = reinterpret_cast<DoublePrecLargeShadow **>(Res);
 
   CastInternal<VectorSize>(Operand, Shadow, ResShadow);
@@ -353,19 +350,19 @@ void InterflopBackend<FPType>::CastToLongdouble(FPType Operand,
 
 // Explicit instanciation
 // Required since the interface has no access to the template definition
-template class InterflopBackend<float>;
-template class InterflopBackend<v2float>;
-template class InterflopBackend<v4float>;
-template class InterflopBackend<v8float>;
-template class InterflopBackend<v16float>;
+template class InterflopBackend<MetaFloat<float, 1>>;
+template class InterflopBackend<MetaFloat<float, 2>>;
+template class InterflopBackend<MetaFloat<float, 4>>;
+template class InterflopBackend<MetaFloat<float, 8>>;
+template class InterflopBackend<MetaFloat<float, 16>>;
 
-template class InterflopBackend<double>;
-template class InterflopBackend<v2double>;
-template class InterflopBackend<v4double>;
-template class InterflopBackend<v8double>;
+template class InterflopBackend<MetaFloat<double, 1>>;
+template class InterflopBackend<MetaFloat<double, 2>>;
+template class InterflopBackend<MetaFloat<double, 4>>;
+template class InterflopBackend<MetaFloat<double, 8>>;
 
-template class InterflopBackend<long double>;
-template class InterflopBackend<v2ldouble>;
-template class InterflopBackend<v4ldouble>;
+template class InterflopBackend<MetaFloat<long double, 1>>;
+template class InterflopBackend<MetaFloat<long double, 2>>;
+template class InterflopBackend<MetaFloat<long double, 4>>;
 
 } // namespace interflop
