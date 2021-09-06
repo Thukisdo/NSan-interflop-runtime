@@ -34,7 +34,8 @@ void BackendFinalize(InsaneContext &Context) noexcept {
 namespace {
 
 // Helper method to perform FP comparisons
-// FIXME : Doesn't raise the same errors as the original code
+// FIXME : Refactor this (probably should use templated comparator / threeway
+// comparisons)
 template <size_t VectorSize, typename DoublePrecShadow>
 bool FCmp(FCmpOpcode Opcode, DoublePrecShadow **LeftShadow,
           DoublePrecShadow **RightShadow) {
@@ -52,7 +53,6 @@ bool FCmp(FCmpOpcode Opcode, DoublePrecShadow **LeftShadow,
       continue; // NaN <=> NaN is always true, no need to go further
 
     // Handle (ordered) comparisons
-    // FIXME: Refactor this atrocity
     if (Opcode == FCmp_oeq || Opcode == FCmp_ueq)
       Res = Res && (LeftOp == RightOp);
     else if (Opcode == FCmp_one || Opcode == FCmp_une)
@@ -109,7 +109,7 @@ bool CheckInternal(ScalarVT Operand, DoublePrecShadow *Shadow) {
   // Same as nsan default max threshold
   // FIXME : Should be defined as flags for more versatility
   // Note: Some compilers do not allow for constexpr math function
-  // so this was removed for compatibility purposes 
+  // so this was removed for compatibility purposes
   static const double MaxAbsoluteError = 1.0 / std::pow(2, 32);
   static const double MaxRelativeError = 1.0 / std::pow(2, 19);
 
@@ -159,7 +159,7 @@ using DoubleprecShadowFor =
 template <typename MetaFloat>
 typename MetaFloat::FPType
 InsaneRuntime<MetaFloat>::Neg(FPType Operand, ShadowType **ShadowOperand,
-                                 ShadowType **Res) {
+                              ShadowType **Res) {
 
   auto Shadow =
       reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
@@ -239,7 +239,7 @@ typename MetaFloat::FPType InsaneRuntime<MetaFloat>::Div(
 // if they have diverged
 template <typename MetaFloat>
 bool InsaneRuntime<MetaFloat>::Check(FPType Operand,
-                                        ShadowType **ShadowOperand) {
+                                     ShadowType **ShadowOperand) {
 
   auto **Shadow =
       reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
@@ -275,9 +275,11 @@ bool InsaneRuntime<MetaFloat>::Check(FPType Operand,
 // To ease the implementaiton, we take the native result as a
 // parameter
 template <typename MetaFloat>
-bool InsaneRuntime<MetaFloat>::CheckFCmp(
-    FCmpOpcode Opcode, FPType LeftOperand, ShadowType **LeftShadowOperand,
-    FPType RightOperand, ShadowType **RightShadowOperand, bool Value) {
+bool InsaneRuntime<MetaFloat>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
+                                         ShadowType **LeftShadowOperand,
+                                         FPType RightOperand,
+                                         ShadowType **RightShadowOperand,
+                                         bool Value) {
 
   auto LeftShadow =
       reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(LeftShadowOperand);
@@ -321,8 +323,8 @@ void InsaneRuntime<MetaFloat>::MakeShadow(FPType Operand, ShadowType **Res) {
 
 template <typename MetaFloat>
 void InsaneRuntime<MetaFloat>::CastToFloat(FPType Operand,
-                                              ShadowType **ShadowOperand,
-                                              OpaqueShadow **Res) {
+                                           ShadowType **ShadowOperand,
+                                           OpaqueShadow **Res) {
   auto Shadow =
       reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
   auto ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
@@ -332,8 +334,8 @@ void InsaneRuntime<MetaFloat>::CastToFloat(FPType Operand,
 
 template <typename MetaFloat>
 void InsaneRuntime<MetaFloat>::CastToDouble(FPType Operand,
-                                               ShadowType **ShadowOperand,
-                                               OpaqueLargeShadow **Res) {
+                                            ShadowType **ShadowOperand,
+                                            OpaqueLargeShadow **Res) {
   auto Shadow =
       reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
   auto ResShadow = reinterpret_cast<DoublePrecLargeShadow **>(Res);
@@ -343,8 +345,8 @@ void InsaneRuntime<MetaFloat>::CastToDouble(FPType Operand,
 
 template <typename MetaFloat>
 void InsaneRuntime<MetaFloat>::CastToLongdouble(FPType Operand,
-                                                   ShadowType **ShadowOperand,
-                                                   OpaqueLargeShadow **Res) {
+                                                ShadowType **ShadowOperand,
+                                                OpaqueLargeShadow **Res) {
   auto Shadow =
       reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
   auto ResShadow = reinterpret_cast<DoublePrecLargeShadow **>(Res);
@@ -359,14 +361,17 @@ template class InsaneRuntime<MetaFloat<float, 2>>;
 template class InsaneRuntime<MetaFloat<float, 4>>;
 template class InsaneRuntime<MetaFloat<float, 8>>;
 template class InsaneRuntime<MetaFloat<float, 16>>;
+template class InsaneRuntime<MetaFloat<float, 32>>;
 
 template class InsaneRuntime<MetaFloat<double, 1>>;
 template class InsaneRuntime<MetaFloat<double, 2>>;
 template class InsaneRuntime<MetaFloat<double, 4>>;
 template class InsaneRuntime<MetaFloat<double, 8>>;
+template class InsaneRuntime<MetaFloat<double, 16>>;
 
 template class InsaneRuntime<MetaFloat<long double, 1>>;
 template class InsaneRuntime<MetaFloat<long double, 2>>;
 template class InsaneRuntime<MetaFloat<long double, 4>>;
+template class InsaneRuntime<MetaFloat<long double, 8>>;
 
 } // namespace insane

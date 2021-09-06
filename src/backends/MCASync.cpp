@@ -153,8 +153,7 @@ void CastInternal(MCASyncShadow **Shadow, DestType Res) {
   }
 }
 
-template <typename MCASyncShadow>
-bool CheckInternal(MCASyncShadow *Shadow) {
+template <typename MCASyncShadow> bool CheckInternal(MCASyncShadow *Shadow) {
 
   double Mean = Shadow->mean();
 
@@ -222,7 +221,7 @@ using MCASyncShadowFor =
 template <typename MetaFloat>
 typename MetaFloat::FPType
 InsaneRuntime<MetaFloat>::Neg(FPType Operand, ShadowType **OperandShadow,
-                                 ShadowType **Res) {
+                              ShadowType **Res) {
 
   auto Shadow =
       reinterpret_cast<MCASyncShadowFor<ShadowType> **>(OperandShadow);
@@ -239,8 +238,8 @@ InsaneRuntime<MetaFloat>::Neg(FPType Operand, ShadowType **OperandShadow,
 template <typename MetaFloat>
 typename MetaFloat::FPType
 InsaneRuntime<MetaFloat>::Add(FPType LeftOp, ShadowType **LeftOpaqueShadow,
-                                 FPType RightOp, ShadowType **RightOpaqueShadow,
-                                 ShadowType **Res) {
+                              FPType RightOp, ShadowType **RightOpaqueShadow,
+                              ShadowType **Res) {
 
   auto LeftShadow =
       reinterpret_cast<MCASyncShadowFor<ShadowType> **>(LeftOpaqueShadow);
@@ -263,8 +262,8 @@ InsaneRuntime<MetaFloat>::Add(FPType LeftOp, ShadowType **LeftOpaqueShadow,
 template <typename MetaFloat>
 typename MetaFloat::FPType
 InsaneRuntime<MetaFloat>::Sub(FPType LeftOp, ShadowType **LeftOpaqueShadow,
-                                 FPType RightOp, ShadowType **RightOpaqueShadow,
-                                 ShadowType **Res) {
+                              FPType RightOp, ShadowType **RightOpaqueShadow,
+                              ShadowType **Res) {
 
   auto LeftShadow =
       reinterpret_cast<MCASyncShadowFor<ShadowType> **>(LeftOpaqueShadow);
@@ -287,8 +286,8 @@ InsaneRuntime<MetaFloat>::Sub(FPType LeftOp, ShadowType **LeftOpaqueShadow,
 template <typename MetaFloat>
 typename MetaFloat::FPType
 InsaneRuntime<MetaFloat>::Mul(FPType LeftOp, ShadowType **LeftOpaqueShadow,
-                                 FPType RightOp, ShadowType **RightOpaqueShadow,
-                                 ShadowType **Res) {
+                              FPType RightOp, ShadowType **RightOpaqueShadow,
+                              ShadowType **Res) {
 
   auto LeftShadow =
       reinterpret_cast<MCASyncShadowFor<ShadowType> **>(LeftOpaqueShadow);
@@ -311,8 +310,8 @@ InsaneRuntime<MetaFloat>::Mul(FPType LeftOp, ShadowType **LeftOpaqueShadow,
 template <typename MetaFloat>
 typename MetaFloat::FPType
 InsaneRuntime<MetaFloat>::Div(FPType LeftOp, ShadowType **LeftOpaqueShadow,
-                                 FPType RightOp, ShadowType **RightOpaqueShadow,
-                                 ShadowType **Res) {
+                              FPType RightOp, ShadowType **RightOpaqueShadow,
+                              ShadowType **Res) {
 
   auto LeftShadow =
       reinterpret_cast<MCASyncShadowFor<ShadowType> **>(LeftOpaqueShadow);
@@ -334,7 +333,7 @@ InsaneRuntime<MetaFloat>::Div(FPType LeftOp, ShadowType **LeftOpaqueShadow,
 
 template <typename MetaFloat>
 bool InsaneRuntime<MetaFloat>::Check(FPType Operand,
-                                        ShadowType **ShadowOperand) {
+                                     ShadowType **ShadowOperand) {
 
   auto Shadow =
       reinterpret_cast<MCASyncShadowFor<ShadowType> **>(ShadowOperand);
@@ -380,9 +379,11 @@ bool InsaneRuntime<MetaFloat>::Check(FPType Operand,
 }
 
 template <typename MetaFloat>
-bool InsaneRuntime<MetaFloat>::CheckFCmp(
-    FCmpOpcode Opcode, FPType LeftOperand, ShadowType **LeftShadowOperand,
-    FPType RightOperand, ShadowType **RightShadowOperand, bool Value) {
+bool InsaneRuntime<MetaFloat>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
+                                         ShadowType **LeftShadowOperand,
+                                         FPType RightOperand,
+                                         ShadowType **RightShadowOperand,
+                                         bool Value) {
 
   auto LeftShadow =
       reinterpret_cast<MCASyncShadowFor<ShadowType> **>(LeftShadowOperand);
@@ -432,8 +433,8 @@ bool InsaneRuntime<MetaFloat>::CheckFCmp(
 
 template <typename MetaFloat>
 void InsaneRuntime<MetaFloat>::CastToFloat(FPType Operand,
-                                              ShadowType **OperandShadow,
-                                              OpaqueShadow **Res) {
+                                           ShadowType **OperandShadow,
+                                           OpaqueShadow **Res) {
   auto Shadow =
       reinterpret_cast<MCASyncShadowFor<ShadowType> **>(OperandShadow);
   auto Destination = reinterpret_cast<MCASyncShadow **>(Res);
@@ -443,8 +444,8 @@ void InsaneRuntime<MetaFloat>::CastToFloat(FPType Operand,
 
 template <typename MetaFloat>
 void InsaneRuntime<MetaFloat>::CastToDouble(FPType Operand,
-                                               ShadowType **OperandShadow,
-                                               OpaqueLargeShadow **Res) {
+                                            ShadowType **OperandShadow,
+                                            OpaqueLargeShadow **Res) {
   auto Shadow =
       reinterpret_cast<MCASyncShadowFor<ShadowType> **>(OperandShadow);
   auto Destination = reinterpret_cast<MCASyncLargeShadow **>(Res);
@@ -454,8 +455,8 @@ void InsaneRuntime<MetaFloat>::CastToDouble(FPType Operand,
 
 template <typename MetaFloat>
 void InsaneRuntime<MetaFloat>::CastToLongdouble(FPType Operand,
-                                                   ShadowType **OperandShadow,
-                                                   OpaqueLargeShadow **Res) {
+                                                ShadowType **OperandShadow,
+                                                OpaqueLargeShadow **Res) {
   auto Shadow =
       reinterpret_cast<MCASyncShadowFor<ShadowType> **>(OperandShadow);
   auto Destination = reinterpret_cast<MCASyncLargeShadow **>(Res);
@@ -488,14 +489,17 @@ template class InsaneRuntime<MetaFloat<float, 2>>;
 template class InsaneRuntime<MetaFloat<float, 4>>;
 template class InsaneRuntime<MetaFloat<float, 8>>;
 template class InsaneRuntime<MetaFloat<float, 16>>;
+template class InsaneRuntime<MetaFloat<float, 32>>;
 
 template class InsaneRuntime<MetaFloat<double, 1>>;
 template class InsaneRuntime<MetaFloat<double, 2>>;
 template class InsaneRuntime<MetaFloat<double, 4>>;
 template class InsaneRuntime<MetaFloat<double, 8>>;
+template class InsaneRuntime<MetaFloat<double, 16>>;
 
 template class InsaneRuntime<MetaFloat<long double, 1>>;
 template class InsaneRuntime<MetaFloat<long double, 2>>;
 template class InsaneRuntime<MetaFloat<long double, 4>>;
+template class InsaneRuntime<MetaFloat<long double, 8>>;
 
 } // namespace insane

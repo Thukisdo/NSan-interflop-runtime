@@ -3,7 +3,7 @@
 # Python script to automatically generate the interface, since it is filled with boilerplate code
 
 FPTypes = ["float", "double", "longdouble"]
-MaxVectorSize = {'float': 16, 'double': 8, 'longdouble': 4}
+MaxVectorSize = {'float': 32, 'double': 16, 'longdouble': 4}
 ShadowType = ["OpaqueShadow", "OpaqueLargeShadow"]
 
 
