@@ -115,8 +115,6 @@ bool CheckInternal(ScalarVT Operand, DoublePrecShadow *Shadow) {
 
   double AbsoluteError = utils::abs(Operand - Shadow->val);
   double RelativeError = utils::abs((AbsoluteError / Shadow->val) * 100);
-  std::cout << "Absolute error: " << AbsoluteError
-            << " Relative error: " << RelativeError << std::endl;
   return AbsoluteError >= MaxAbsoluteError || RelativeError >= MaxRelativeError;
 }
 

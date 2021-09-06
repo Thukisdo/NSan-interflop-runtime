@@ -9,7 +9,6 @@
  */
 
 #include <cstdlib>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <regex>
@@ -18,8 +17,6 @@
 #include "Utils.hpp"
 
 namespace insane {
-
-namespace fs = std::filesystem;
 
 // Can only use printf during initialization
 bool RuntimeFlags::LoadFromEnvironnement() {
@@ -32,6 +29,7 @@ bool RuntimeFlags::LoadFromEnvironnement() {
   return true;
 }
 
+// Can only use printf during initialization
 bool RuntimeFlags::LoadFromString(const std::string &Flags) {
   fprintf(stderr, "[INSanE] Loading config from string\n");
   ParseFlag(Flags);
@@ -39,42 +37,38 @@ bool RuntimeFlags::LoadFromString(const std::string &Flags) {
 }
 
 // Can only use printf during initialization
-bool RuntimeFlags::LoadFromFile(const std::string &FileName) {
-  fs::path DefaultPath = FileName;
-  if (not fs::exists(DefaultPath))
-    return false;
+bool RuntimeFlags::LoadFromFile(const std::string &Filename) {
 
-  fprintf(stderr, "[INSanE] Found insane's config file\n");
-
-  size_t Size = fs::file_size(DefaultPath);
-
-  std::ifstream Input;
-  // ifstream may throw an exception for various reasons
-  try {
-    Input.open(DefaultPath);
-  } catch (std::exception &e) {
-    fprintf(stderr, "[INSanE] Failed to load config from default file :\n");
-    fprintf(stderr, "\tException raised : %s\n", e.what());
+  std::ifstream ConfigFile(Filename);
+  
+  if (not ConfigFile.is_open()) {
     return false;
   }
 
-  if (not Input.is_open())
+  fprintf(stderr, "[INSanE] Found insane's config file\n");
+
+  ConfigFile.seekg(0, ConfigFile.end);
+  size_t Size = ConfigFile.tellg();
+  ConfigFile.seekg(0, ConfigFile.beg);
+
+  if (not ConfigFile.is_open())
     return false;
 
   std::string Str;
   Str.reserve(Size);
-  Str.assign(std::istreambuf_iterator<char>(Input),
+  Str.assign(std::istreambuf_iterator<char>(ConfigFile),
              std::istreambuf_iterator<char>());
   ParseFlag(Str);
 
-  Input.close();
+  ConfigFile.close();
   return true;
 }
 
 // Can only use printf during initialization
 void RuntimeFlags::ParseFlag(std::string const &Str) {
 
-  std::regex reg("(\\w*)\\s*=\\s*(\\w*)", std::regex::ECMAScript | std::regex::icase);
+  std::regex reg("(\\w*)\\s*=\\s*(\\w*)",
+                 std::regex::ECMAScript | std::regex::icase);
 
   auto FlagBegin = std::sregex_iterator(Str.begin(), Str.end(), reg);
 
