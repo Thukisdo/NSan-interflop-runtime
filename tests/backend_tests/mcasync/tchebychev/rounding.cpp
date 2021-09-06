@@ -1,3 +1,13 @@
+/**
+ * @file rounding.cpp
+ * @author Mathys JAM (mathys.jam@gmail.com)
+ * @brief Polynomial evaluation and rounding
+ * @version 1.0
+ * @date 2021-08-31
+ * 
+ * 
+ */
+
 #include "backends/MCASync.hpp"
 #include <algorithm>
 #include <cmath>
@@ -8,7 +18,7 @@
 #include <random>
 #include <thread>
 
-using namespace interflop::mcasync;
+using namespace insane::mcasync;
 
 template <typename FPType> struct ExtendedFPType {
   using type =
@@ -28,7 +38,7 @@ template <typename FPType> std::string FPTypeToStr() {
 
 /* Expanded naïve implementation of the polynomial evaluation */
 /* D. Stott Parker, MCA, section 8.1.2 pp.52-54               */
-template <typename FPType> FPType expanded(FPType x) {
+template <typename FPType> FPType ExpandedEvaluation(FPType x) {
 
   using ExtendedFP = ExtendedFPType_t<FPType>;
 
@@ -50,7 +60,7 @@ template <typename FPType> FPType expanded(FPType x) {
   return r;
 }
 
-template <typename FPType> void test() {
+template <typename FPType> void Test() {
   
   static constexpr FPType kStep = 0.001;
 
@@ -60,7 +70,7 @@ template <typename FPType> void test() {
 
   for (FPType i = 0.5; i <= 1.0; i += kStep) {
     for (size_t j = 0; j < 20; j++) {
-      FPType res = expanded<FPType>(i);
+      FPType res = ExpandedEvaluation<FPType>(i);
       output << j << " " << i << " " << res << "\n";
     }
   }
@@ -69,9 +79,9 @@ template <typename FPType> void test() {
 int main() {
   std::array<std::thread, 2> threads;
 
-  threads[0] = std::thread(test<float>);
-  threads[1] = std::thread(test<double>);
-  test<long double>();
+  threads[0] = std::thread(Test<float>);
+  threads[1] = std::thread(Test<double>);
+  Test<long double>();
 
   std::for_each(threads.begin(), threads.end(),
                 [](std::thread &t) { t.join(); });

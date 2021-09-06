@@ -17,7 +17,7 @@
 #include <iostream>
 #include <limits>
 
-namespace interflop::doubleprec {
+namespace insane::doubleprec {
 
 // We use 2x shadow memory, so our shadows should be either 64 or 128 bytes for large
 struct DoublePrecShadow {
@@ -31,4 +31,4 @@ struct DoublePrecLargeShadow {
 static_assert(sizeof(DoublePrecShadow) == 8, "invalid DoublePrec shadow size");
 static_assert(sizeof(DoublePrecLargeShadow) == 16, "invalid DoublePrec Large shadow size");
 
-} // namespace interflop::doubleprec
+} // namespace insane::doubleprec

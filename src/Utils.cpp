@@ -2,8 +2,8 @@
  * @file Utils.cpp
  * @author Mathys JAM (mathys.jam@ens.uvsq.fr)
  * @brief Utilitary functions implementation
- * @version 0.5.0
- * @date 2021-07-20
+ * @version 0.5.1
+ * @date 2021-08-31
  *
  */
 #include "Utils.hpp"
@@ -13,10 +13,10 @@
 // Defined in nsan's runtime
 void __nsan_dump_stacktrace();
 
-// Helper method to allow storing stack location in interflop mdoe
+// Helper method to allow storing stack location in insane mode
 uint32_t __nsan_save_stacktrace();
 
-// Helper method to allow printing stack location in interflop mdoe
+// Helper method to allow printing stack location in insane mode
 void __nsan_print_stacktrace(uint32_t StackId);
 
 size_t __nsan_get_shadowscale();
@@ -37,7 +37,7 @@ size_t __nsan_get_shadowscale() { return 2; }
 
 #endif
 
-namespace interflop::utils {
+namespace insane::utils {
 
 [[noreturn]] void unreachable(const char *str) noexcept {
   if (str)
@@ -65,9 +65,8 @@ void PrintStackTrace(uint32_t StackId) noexcept {
   __nsan_print_stacktrace(StackId);
 }
 
-size_t GetNSanShadowScale() { 
+size_t GetNSanShadowScale() {
   size_t res = __nsan_get_shadowscale();
-  printf("ShadowScale : %li\n", res);
   return res;
 }
 
@@ -81,13 +80,18 @@ AsciiColor AsciiColor::Magenta = "\033[95m";
 AsciiColor AsciiColor::Gray = "\033[90m";
 AsciiColor AsciiColor::Reset = "\033[0m";
 
+const char *AsciiColor::str() const {
+  if (InsaneContext::getInstance().Flags().getUseColor())
+    return Str;
+  return "";
+}
+
 std::ostream &operator<<(std::ostream &Os, const AsciiColor &Color) {
-  if (dynamic_cast<std::fstream*>(&Os))
+  if (dynamic_cast<std::fstream *>(&Os))
     return Os;
-  if (InterflopContext::getInstance().Flags().UseColor())
+  if (InsaneContext::getInstance().Flags().getUseColor())
     Os << Color.Str;
   return Os;
 }
 
-
-} // namespace interflop::utils
+} // namespace insane::utils

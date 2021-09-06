@@ -2,18 +2,29 @@
  * @file Interflop.cpp
  * @author Mathys JAM (mmathys.jam@ens.uvsq.fr)
  * @brief Module constructor and startup logic.
- * @version 0.5.0
- * @date 2021-07-20
+ * @version 0.5.1
+ * @date 2021-08-31
  *
  *
  */
 
 #include "Backend.hpp"
 #include "Context.hpp"
+#include <atomic>
 #include <iomanip>
 #include <iostream>
 
-namespace interflop {
+namespace insane {
+
+void WarningRecorder::Record() {
+  RecordImpl();
+  WarningCount++;
+
+  if (WarningCount >=
+      InsaneContext::getInstance().Flags().getWarningLimit()) {
+    std::cerr << "[INSanE] Warning limit reached, exiting\n";
+  }
+}
 
 void StacktraceRecorder::print(std::string const &BackendName,
                                std::ostream &out) {
@@ -23,9 +34,9 @@ void StacktraceRecorder::print(std::string const &BackendName,
   for (int I = 0; I < 50; ++I)
     out << "_";
 
-  out << "\nInterflop results:"
+  out << "\nInsane results:"
       << "\n";
-  out << "\tBackend: " << BackendName << "\n";
+  out << "\tRuntime: " << BackendName << "\n";
   size_t WarningCount = 0;
   for (auto const &It : Map)
     WarningCount += It.second;
@@ -47,19 +58,20 @@ void StacktraceRecorder::print(std::string const &BackendName,
   out << utils::AsciiColor::Reset;
 }
 
-} // namespace interflop
+} // namespace insane
 
-using namespace interflop;
+using namespace insane;
 // Warning : since we're in a module constructor, some objects may still be
 // uninitialized, like std::cout
 extern "C" void __interflop_init() {
   // FIXME: Should use the context initialization variable ?
-  static bool Initialized = false;
+  static std::atomic<bool> Initialized = false;
 
   if (Initialized)
     return;
   Initialized = true;
 
-  auto& Context = InterflopContext::getInstance();
+  auto &Context = InsaneContext::getInstance();
+  Context.Init();
   BackendInit(Context);
 }

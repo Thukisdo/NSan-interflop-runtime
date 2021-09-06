@@ -27,7 +27,7 @@ def FPTypeToShadow(Type: str, VSize=1):
 
 
 def FPPrefix(Type: str, VSize=1):
-    res = "__interflop_" + Type
+    res = "__insane_" + Type
 
     if VSize > 1:
         res += "_" + GetVectorPrefix(VSize)
@@ -40,8 +40,8 @@ def WriteHeader(File=None):
     File.write("// Caution: Any changes made to this file will be erased\n\n")
     File.write("#include \"Context.hpp\"\n\n")
     File.write("#include <cstring>\n")
-    File.write("using namespace interflop;\n")
-    File.write("template <typename T> using Backend = InterflopBackend<T>;\n\n")
+    File.write("using namespace insane;\n")
+    File.write("template <typename T> using Backend = InsaneRuntime<T>;\n\n")
 
 def GenerateHelperFunction(File=None):
     # Helper function to reduce a vector of bool to a single bool

@@ -1,58 +1,89 @@
 /**
  * @file Flags.hpp
  * @author Mathys JAM (mathys.jam@ens.uvsq.fr)
- * @brief Store global runtime flags.
- * @version 0.1.0
- * @date 2021-07-20
+ * @brief Stores global runtime flags.
+ * @version 0.2.0
+ * @date 2021-08-31
  *
  *
  */
 #pragma once
+#include <iostream>
 
-namespace interflop {
+namespace insane {
 
 // Storage class for the runtime flags
 // We could use a struct to avoid setter/getters, but this is both easier to
 // read and to use in external code (i.e defining specific flags for testing)
 class RuntimeFlags {
 public:
-  // FIXME : should load the config from a file or from the environnement
-  RuntimeFlags() {}
-  
-  void ExitOnError(bool const Value) { _ExitOnError = Value; }
-  bool ExitOnError() const { return _ExitOnError; }
+  RuntimeFlags() = default;
 
-  void PrintStatsOnExit(bool const value) { _PrintStatsOnExit = value; }
-  bool PrintStatsOnExit() const { return _PrintStatsOnExit; }
+  void setExitOnError(bool const Value) { ExitOnError = Value; }
+  bool getExitOnError() const { return ExitOnError; }
 
-  void WarningEnabled(bool const value) { _WarningEnabled = value; }
-  bool WarningEnabled() const { return _WarningEnabled; }
+  void setPrintStatsOnExit(bool const value) { PrintStatsOnExit = value; }
+  bool getPrintStatsOnExit() const { return PrintStatsOnExit; }
 
-  void StackRecording(bool const value) { _StackRecording = value; }
-  bool StackRecording() const { return _StackRecording; }
+  void setWarningEnabled(bool const value) { WarningEnabled = value; }
+  bool getWarningEnabled() const { return WarningEnabled; }
 
-  void WarningLimit(size_t const value) { _WarningLimit = value; }
-  size_t WarningLimit() const { return _WarningLimit; }
+  void setStackRecording(bool const value) { StackRecording = value; }
+  bool getStackRecording() const { return StackRecording; }
 
-  void Verbose(bool const value) { _Verbose = value; }
-  bool Verbose() const { return _Verbose; }
+  void setWarningLimit(size_t const value) { WarningLimit = value; }
+  size_t getWarningLimit() const { return WarningLimit; }
 
-  bool UseColor() const {return _UseColor;}
-  void UseColor(bool const value) { _UseColor = value; }
+  void setVerbose(bool const value) { Verbose = value; }
+  bool getVerbose() const { return Verbose; }
+
+  void setUseColor(bool const value) { UseColor = value; }
+  bool getUseColor() const { return UseColor; }
+
+  /**
+   * @brief Read the environnement var "INSANE_OPTIONS" and parse it for flags
+   * 
+   * @return true if the environnement var was found
+   * @return false
+   */
+  bool LoadFromEnvironnement();
+
+  /**
+   * @brief Load flags from a string
+   * 
+   * @param Flags Input string containing flags
+   * @return true 
+   * @return false 
+   */
+  bool LoadFromString(const std::string &Flags);
+
+  /**
+   * @brief Load flags from a path
+   * 
+   * @param FileName defaults to "insane_flags.cfg"
+   * @return true 
+   * @return false 
+   */
+  bool LoadFromFile(const std::string &FileName = "insane_flags.cfg");
 
 private:
+  // Parse a string generated from LoadFromEnvironnement() or LoadFile() and set
+  // appropriate flags
+  void ParseFlag(std::string const &Str);
+
   // If true, the program will exit on the first error.
   // FIXME : calling conventions
-  bool _ExitOnError = false;
-  bool _PrintStatsOnExit = true;
-  bool _WarningEnabled = false;
-  bool _StackRecording = false;
-  bool _UseColor = true;
+  bool ExitOnError = true;
+  bool PrintStatsOnExit = true;
+  bool WarningEnabled = true;
+  bool StackRecording = true;
+  bool UseColor = true;
+
   // Maximum number of warnings before exiting.
   // 0 means no limit.
-  // FIXME : not used yet 
-  size_t _WarningLimit = 20;
-  bool _Verbose = false;
+  // FIXME : not used yet
+  size_t WarningLimit = 20;
+  bool Verbose = false;
 };
 
-} // namespace interflop
+} // namespace insane

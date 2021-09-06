@@ -6,7 +6,7 @@
 #include <iostream>
 
 
-using namespace interflop::mcasync;
+using namespace insane::mcasync;
 
 constexpr size_t N_SAMPLE = 100000;
 

@@ -2,46 +2,48 @@
  * @file Context.cpp
  * @author Mathys JAM (mathys.jam@ens.uvsq.fr)
  * @brief Context implementation
- * @version 0.5.0
- * @date 2021-07-20
+ * @version 0.5.1
+ * @date 2021-08-31
  *
  *
  */
 
 #include "Context.hpp"
 
-namespace interflop {
+namespace insane {
 
-InterflopContext &InterflopContext::getInstance() {
-  static InterflopContext singleton;
+InsaneContext &InsaneContext::getInstance() {
+  static InsaneContext singleton;
   return singleton;
 }
 
-void InterflopContext::Init() {
+void InsaneContext::Init() {
 
   std::scoped_lock<std::shared_mutex> lock(MainContextMutex);
 
   if (Initialized)
     return;
 
-  // We should perfom some initialization here
+  WRecorder = std::make_unique<StacktraceRecorder>();
+  RTFlags.LoadFromEnvironnement();
+  RTFlags.LoadFromFile(); // File config overrides env config
 
   Initialized = true;
 }
 
-InterflopContext::~InterflopContext() {
+InsaneContext::~InsaneContext() {
 
   std::scoped_lock<std::shared_mutex> lock(MainContextMutex);
 
   // A failed initialization may indicate a failure in the progran init sequence
-  // causing std::cout to be uninitialized.
-  if (Initialized) {
-    WarningRecorder.print(BackendName, std::cout);
+  // causing std::cerr to be uninitialized.
+  if (not std::cerr.good())
+    return;
 
-    // FIXME: should probably call BackendFinalize() even if not initialized
-    // and store a global status flag to indicate the status
-    BackendFinalize(*this);
-  }
+  if (RTFlags.getPrintStatsOnExit())
+    WRecorder->print(BackendName, std::cerr);
+
+  BackendFinalize(*this);
 }
 
-} // namespace interflop
+} // namespace insane

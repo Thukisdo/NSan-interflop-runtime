@@ -1,9 +1,9 @@
 /**
  * @file DoublePrec.cpp
  * @author Mathys JAM (mathys.jam@ens.uvsq.fr)
- * @brief Double precision backend to mimic native nsan behaviour
- * @version 9.0
- * @date 2021-07-20
+ * @brief Double precision backend that mimic normal nsan behaviour
+ * @version 9.1.0
+ * @date 2021-08-31
  *
  *
  */
@@ -12,13 +12,14 @@
 #include "Context.hpp"
 #include <cstring>
 
-namespace interflop {
+namespace insane {
 
 using namespace doubleprec;
 
-void BackendInit(InterflopContext &Context) noexcept {
-  Context.setBackendName("DoublePrec");
-  
+// We have to use printf() during the initialization
+void BackendInit(InsaneContext &Context) noexcept {
+  Context.setBackendName("insane::DoublePrec");
+
   if (utils::GetNSanShadowScale() != 2) {
     fprintf(stderr, "Warning: [DoublePrec] backend requires 2x shadow\n");
     fprintf(stderr, "Recompile using flags -mllvm -nsan-shadowscale=2\n");
@@ -26,7 +27,7 @@ void BackendInit(InterflopContext &Context) noexcept {
   }
 }
 
-void BackendFinalize(InterflopContext &Context) noexcept {
+void BackendFinalize(InsaneContext &Context) noexcept {
   // Nothing to do
 }
 
@@ -98,7 +99,7 @@ void FCmpCheckFail(FPType a, DoublePrecShadow **sa, FPType b,
   std::cout << "}" << std::endl;
 
   utils::DumpStacktrace();
-  if (InterflopContext::getInstance().Flags().ExitOnError())
+  if (InsaneContext::getInstance().Flags().getExitOnError())
     exit(1);
 }
 
@@ -112,6 +113,8 @@ bool CheckInternal(ScalarVT Operand, DoublePrecShadow *Shadow) {
 
   double AbsoluteError = utils::abs(Operand - Shadow->val);
   double RelativeError = utils::abs((AbsoluteError / Shadow->val) * 100);
+  std::cout << "Absolute error: " << AbsoluteError
+            << " Relative error: " << RelativeError << std::endl;
   return AbsoluteError >= MaxAbsoluteError || RelativeError >= MaxRelativeError;
 }
 
@@ -155,7 +158,7 @@ using DoubleprecShadowFor =
 // Unary operator overload
 template <typename MetaFloat>
 typename MetaFloat::FPType
-InterflopBackend<MetaFloat>::Neg(FPType Operand, ShadowType **ShadowOperand,
+InsaneRuntime<MetaFloat>::Neg(FPType Operand, ShadowType **ShadowOperand,
                                  ShadowType **Res) {
 
   auto Shadow =
@@ -171,7 +174,7 @@ InterflopBackend<MetaFloat>::Neg(FPType Operand, ShadowType **ShadowOperand,
 // Binary operator overload
 // Replicate
 template <typename MetaFloat>
-typename MetaFloat::FPType InterflopBackend<MetaFloat>::Add(
+typename MetaFloat::FPType InsaneRuntime<MetaFloat>::Add(
     FPType LeftOperand, ShadowType **LeftShadowOperand, FPType RightOperand,
     ShadowType **const RightShadowOperand, ShadowType **Res) {
 
@@ -187,7 +190,7 @@ typename MetaFloat::FPType InterflopBackend<MetaFloat>::Add(
 }
 
 template <typename MetaFloat>
-typename MetaFloat::FPType InterflopBackend<MetaFloat>::Sub(
+typename MetaFloat::FPType InsaneRuntime<MetaFloat>::Sub(
     FPType LeftOperand, ShadowType **LeftShadowOperand, FPType RightOperand,
     ShadowType **const RightShadowOperand, ShadowType **Res) {
   auto LeftShadow =
@@ -202,7 +205,7 @@ typename MetaFloat::FPType InterflopBackend<MetaFloat>::Sub(
 }
 
 template <typename MetaFloat>
-typename MetaFloat::FPType InterflopBackend<MetaFloat>::Mul(
+typename MetaFloat::FPType InsaneRuntime<MetaFloat>::Mul(
     FPType LeftOperand, ShadowType **LeftShadowOperand, FPType RightOperand,
     ShadowType **const RightShadowOperand, ShadowType **Res) {
   auto LeftShadow =
@@ -217,7 +220,7 @@ typename MetaFloat::FPType InterflopBackend<MetaFloat>::Mul(
 }
 
 template <typename MetaFloat>
-typename MetaFloat::FPType InterflopBackend<MetaFloat>::Div(
+typename MetaFloat::FPType InsaneRuntime<MetaFloat>::Div(
     FPType LeftOperand, ShadowType **LeftShadowOperand, FPType RightOperand,
     ShadowType **const RightShadowOperand, ShadowType **Res) {
 
@@ -235,13 +238,13 @@ typename MetaFloat::FPType InterflopBackend<MetaFloat>::Div(
 // Called when we need to compare the native value with the shadow one to see
 // if they have diverged
 template <typename MetaFloat>
-bool InterflopBackend<MetaFloat>::Check(FPType Operand,
+bool InsaneRuntime<MetaFloat>::Check(FPType Operand,
                                         ShadowType **ShadowOperand) {
 
   auto **Shadow =
       reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
 
-  bool Res = 0;
+  bool Res = false;
   // We unvectorize the check
   // We shall not acess Operand[I] if we're not working on vectors
   if constexpr (VectorSize > 1) {
@@ -254,14 +257,14 @@ bool InterflopBackend<MetaFloat>::Check(FPType Operand,
 
   if (Res) {
     // We may want to store additional information
-    auto &Context = InterflopContext::getInstance();
+    auto &Context = InsaneContext::getInstance();
 
-    if (Context.Flags().StackRecording())
-      Context.getStacktraceRecorder().Record();
-    if (Context.Flags().WarningEnabled())
+    if (Context.Flags().getStackRecording())
+      Context.getWarningRecorder().Record();
+    if (Context.Flags().getWarningEnabled())
       CheckFail<VectorSize>(Operand, Shadow);
 
-    if (Context.Flags().ExitOnError())
+    if (Context.Flags().getExitOnError())
       exit(1);
   }
   return Res;
@@ -272,7 +275,7 @@ bool InterflopBackend<MetaFloat>::Check(FPType Operand,
 // To ease the implementaiton, we take the native result as a
 // parameter
 template <typename MetaFloat>
-bool InterflopBackend<MetaFloat>::CheckFCmp(
+bool InsaneRuntime<MetaFloat>::CheckFCmp(
     FCmpOpcode Opcode, FPType LeftOperand, ShadowType **LeftShadowOperand,
     FPType RightOperand, ShadowType **RightShadowOperand, bool Value) {
 
@@ -287,15 +290,15 @@ bool InterflopBackend<MetaFloat>::CheckFCmp(
   // We expect both comparison to be equal, else we emit a warning
   if (Value != Res) {
     // We may want to store additional informations
-    auto &Context = InterflopContext::getInstance();
+    auto &Context = InsaneContext::getInstance();
 
-    if (Context.Flags().StackRecording())
-      Context.getStacktraceRecorder().Record();
-    if (Context.Flags().WarningEnabled())
+    if (Context.Flags().getStackRecording())
+      Context.getWarningRecorder().Record();
+    if (Context.Flags().getWarningEnabled())
       FCmpCheckFail<VectorSize>(LeftOperand, LeftShadow, RightOperand,
                                 RightShadow);
 
-    if (Context.Flags().ExitOnError())
+    if (Context.Flags().getExitOnError())
       exit(1);
   }
   // We return the shadow comparison result to be able to correctly branch
@@ -304,7 +307,7 @@ bool InterflopBackend<MetaFloat>::CheckFCmp(
 
 // We simply extend the original shadow to double precision
 template <typename MetaFloat>
-void InterflopBackend<MetaFloat>::MakeShadow(FPType Operand, ShadowType **Res) {
+void InsaneRuntime<MetaFloat>::MakeShadow(FPType Operand, ShadowType **Res) {
   auto ResShadow = reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(Res);
 
   for (int I = 0; I < VectorSize; I++) {
@@ -317,7 +320,7 @@ void InterflopBackend<MetaFloat>::MakeShadow(FPType Operand, ShadowType **Res) {
 }
 
 template <typename MetaFloat>
-void InterflopBackend<MetaFloat>::CastToFloat(FPType Operand,
+void InsaneRuntime<MetaFloat>::CastToFloat(FPType Operand,
                                               ShadowType **ShadowOperand,
                                               OpaqueShadow **Res) {
   auto Shadow =
@@ -328,7 +331,7 @@ void InterflopBackend<MetaFloat>::CastToFloat(FPType Operand,
 }
 
 template <typename MetaFloat>
-void InterflopBackend<MetaFloat>::CastToDouble(FPType Operand,
+void InsaneRuntime<MetaFloat>::CastToDouble(FPType Operand,
                                                ShadowType **ShadowOperand,
                                                OpaqueLargeShadow **Res) {
   auto Shadow =
@@ -339,7 +342,7 @@ void InterflopBackend<MetaFloat>::CastToDouble(FPType Operand,
 }
 
 template <typename MetaFloat>
-void InterflopBackend<MetaFloat>::CastToLongdouble(FPType Operand,
+void InsaneRuntime<MetaFloat>::CastToLongdouble(FPType Operand,
                                                    ShadowType **ShadowOperand,
                                                    OpaqueLargeShadow **Res) {
   auto Shadow =
@@ -351,19 +354,19 @@ void InterflopBackend<MetaFloat>::CastToLongdouble(FPType Operand,
 
 // Explicit instanciation
 // Required since the interface has no access to the template definition
-template class InterflopBackend<MetaFloat<float, 1>>;
-template class InterflopBackend<MetaFloat<float, 2>>;
-template class InterflopBackend<MetaFloat<float, 4>>;
-template class InterflopBackend<MetaFloat<float, 8>>;
-template class InterflopBackend<MetaFloat<float, 16>>;
+template class InsaneRuntime<MetaFloat<float, 1>>;
+template class InsaneRuntime<MetaFloat<float, 2>>;
+template class InsaneRuntime<MetaFloat<float, 4>>;
+template class InsaneRuntime<MetaFloat<float, 8>>;
+template class InsaneRuntime<MetaFloat<float, 16>>;
 
-template class InterflopBackend<MetaFloat<double, 1>>;
-template class InterflopBackend<MetaFloat<double, 2>>;
-template class InterflopBackend<MetaFloat<double, 4>>;
-template class InterflopBackend<MetaFloat<double, 8>>;
+template class InsaneRuntime<MetaFloat<double, 1>>;
+template class InsaneRuntime<MetaFloat<double, 2>>;
+template class InsaneRuntime<MetaFloat<double, 4>>;
+template class InsaneRuntime<MetaFloat<double, 8>>;
 
-template class InterflopBackend<MetaFloat<long double, 1>>;
-template class InterflopBackend<MetaFloat<long double, 2>>;
-template class InterflopBackend<MetaFloat<long double, 4>>;
+template class InsaneRuntime<MetaFloat<long double, 1>>;
+template class InsaneRuntime<MetaFloat<long double, 2>>;
+template class InsaneRuntime<MetaFloat<long double, 4>>;
 
-} // namespace interflop
+} // namespace insane

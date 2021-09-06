@@ -2,16 +2,16 @@
  * @file MCASync.cpp
  * @author Mathys JAM (mathys.jam@ens.uvsq.fr), Pablo Oliveira
  * (pablo.oliveira@ens.uvsq.fr) and Eric Petit (eric.petit@ens.uvsq.fr)
- * @brief First prototype for a MCA Synchrone backend
- * @version 0.7.0
- * @date 2021-07-20
+ * @brief MCA Synchrone backend
+ * @version 0.7.1
+ * @date 2021-08-31
  *
  *
  */
 #include "backends/MCASync.hpp"
 #include "Context.hpp"
 
-namespace interflop {
+namespace insane {
 
 /* ========================================================================= */
 /* MCASync backend specific functions and structures                         */
@@ -125,8 +125,9 @@ double StochasticRound(__float128 x) {
 
 using namespace mcasync;
 
-void BackendInit(InterflopContext &Context) noexcept {
-  Context.setBackendName("MCA Synchrone");
+// We have to use printf() during the initialization
+void BackendInit(InsaneContext &Context) noexcept {
+  Context.setBackendName("insane::MCASync");
 
   if (utils::GetNSanShadowScale() != 4) {
     fprintf(stderr, "Warning: MCA Synchrone backend requires 4x shadow\n");
@@ -135,7 +136,7 @@ void BackendInit(InterflopContext &Context) noexcept {
   }
 }
 
-void BackendFinalize(InterflopContext &Context) noexcept {
+void BackendFinalize(InsaneContext &Context) noexcept {
   // Nothing to do
 }
 
@@ -220,7 +221,7 @@ using MCASyncShadowFor =
 
 template <typename MetaFloat>
 typename MetaFloat::FPType
-InterflopBackend<MetaFloat>::Neg(FPType Operand, ShadowType **OperandShadow,
+InsaneRuntime<MetaFloat>::Neg(FPType Operand, ShadowType **OperandShadow,
                                  ShadowType **Res) {
 
   auto Shadow =
@@ -237,7 +238,7 @@ InterflopBackend<MetaFloat>::Neg(FPType Operand, ShadowType **OperandShadow,
 
 template <typename MetaFloat>
 typename MetaFloat::FPType
-InterflopBackend<MetaFloat>::Add(FPType LeftOp, ShadowType **LeftOpaqueShadow,
+InsaneRuntime<MetaFloat>::Add(FPType LeftOp, ShadowType **LeftOpaqueShadow,
                                  FPType RightOp, ShadowType **RightOpaqueShadow,
                                  ShadowType **Res) {
 
@@ -261,7 +262,7 @@ InterflopBackend<MetaFloat>::Add(FPType LeftOp, ShadowType **LeftOpaqueShadow,
 
 template <typename MetaFloat>
 typename MetaFloat::FPType
-InterflopBackend<MetaFloat>::Sub(FPType LeftOp, ShadowType **LeftOpaqueShadow,
+InsaneRuntime<MetaFloat>::Sub(FPType LeftOp, ShadowType **LeftOpaqueShadow,
                                  FPType RightOp, ShadowType **RightOpaqueShadow,
                                  ShadowType **Res) {
 
@@ -285,7 +286,7 @@ InterflopBackend<MetaFloat>::Sub(FPType LeftOp, ShadowType **LeftOpaqueShadow,
 
 template <typename MetaFloat>
 typename MetaFloat::FPType
-InterflopBackend<MetaFloat>::Mul(FPType LeftOp, ShadowType **LeftOpaqueShadow,
+InsaneRuntime<MetaFloat>::Mul(FPType LeftOp, ShadowType **LeftOpaqueShadow,
                                  FPType RightOp, ShadowType **RightOpaqueShadow,
                                  ShadowType **Res) {
 
@@ -309,7 +310,7 @@ InterflopBackend<MetaFloat>::Mul(FPType LeftOp, ShadowType **LeftOpaqueShadow,
 
 template <typename MetaFloat>
 typename MetaFloat::FPType
-InterflopBackend<MetaFloat>::Div(FPType LeftOp, ShadowType **LeftOpaqueShadow,
+InsaneRuntime<MetaFloat>::Div(FPType LeftOp, ShadowType **LeftOpaqueShadow,
                                  FPType RightOp, ShadowType **RightOpaqueShadow,
                                  ShadowType **Res) {
 
@@ -332,7 +333,7 @@ InterflopBackend<MetaFloat>::Div(FPType LeftOp, ShadowType **LeftOpaqueShadow,
 }
 
 template <typename MetaFloat>
-bool InterflopBackend<MetaFloat>::Check(FPType Operand,
+bool InsaneRuntime<MetaFloat>::Check(FPType Operand,
                                         ShadowType **ShadowOperand) {
 
   auto Shadow =
@@ -348,13 +349,13 @@ bool InterflopBackend<MetaFloat>::Check(FPType Operand,
   } else
     Res = CheckInternal(Shadow[0]);
   if (Res) {
-    auto &Context = InterflopContext::getInstance();
+    auto &Context = InsaneContext::getInstance();
 
-    if (Context.Flags().StackRecording())
-      Context.getStacktraceRecorder().Record();
+    if (Context.Flags().getStackRecording())
+      Context.getWarningRecorder().Record();
 
     // Print a warning
-    if (Context.Flags().WarningEnabled()) {
+    if (Context.Flags().getWarningEnabled()) {
       std::cout << "\033[1;31m";
       std::cout << "[MCASync] Low precision shadow result :"
                 << std::setprecision(20) << std::endl;
@@ -372,14 +373,14 @@ bool InterflopBackend<MetaFloat>::Check(FPType Operand,
       std::cout << "\033[0m";
     }
 
-    if (Context.Flags().ExitOnError())
+    if (Context.Flags().getExitOnError())
       exit(1);
   }
   return Res;
 }
 
 template <typename MetaFloat>
-bool InterflopBackend<MetaFloat>::CheckFCmp(
+bool InsaneRuntime<MetaFloat>::CheckFCmp(
     FCmpOpcode Opcode, FPType LeftOperand, ShadowType **LeftShadowOperand,
     FPType RightOperand, ShadowType **RightShadowOperand, bool Value) {
 
@@ -390,11 +391,11 @@ bool InterflopBackend<MetaFloat>::CheckFCmp(
   bool Res = FCmpInternal<VectorSize>(Opcode, LeftShadow, RightShadow);
   // We expect both comparison to be equal, else we print an error
   if (Value != Res) {
-    auto &Context = InterflopContext::getInstance();
-    InterflopContext::getInstance().getStacktraceRecorder().Record();
+    auto &Context = InsaneContext::getInstance();
+    InsaneContext::getInstance().getWarningRecorder().Record();
 
     // Print a warning
-    if (Context.Flags().WarningEnabled()) {
+    if (Context.Flags().getWarningEnabled()) {
       std::cout << utils::AsciiColor::Red;
       std::cout
           << "[MCASync] Floating-point comparison results depend on precision"
@@ -420,9 +421,9 @@ bool InterflopBackend<MetaFloat>::CheckFCmp(
       std::cout << utils::AsciiColor::Reset;
     }
 
-    if (InterflopContext::getInstance().Flags().ExitOnError())
+    if (InsaneContext::getInstance().Flags().getExitOnError())
       exit(1);
-    if (Context.Flags().ExitOnError())
+    if (Context.Flags().getExitOnError())
       exit(1);
   }
   // We return the shadow comparison result to be able to correctly branch
@@ -430,7 +431,7 @@ bool InterflopBackend<MetaFloat>::CheckFCmp(
 }
 
 template <typename MetaFloat>
-void InterflopBackend<MetaFloat>::CastToFloat(FPType Operand,
+void InsaneRuntime<MetaFloat>::CastToFloat(FPType Operand,
                                               ShadowType **OperandShadow,
                                               OpaqueShadow **Res) {
   auto Shadow =
@@ -441,7 +442,7 @@ void InterflopBackend<MetaFloat>::CastToFloat(FPType Operand,
 }
 
 template <typename MetaFloat>
-void InterflopBackend<MetaFloat>::CastToDouble(FPType Operand,
+void InsaneRuntime<MetaFloat>::CastToDouble(FPType Operand,
                                                ShadowType **OperandShadow,
                                                OpaqueLargeShadow **Res) {
   auto Shadow =
@@ -452,7 +453,7 @@ void InterflopBackend<MetaFloat>::CastToDouble(FPType Operand,
 }
 
 template <typename MetaFloat>
-void InterflopBackend<MetaFloat>::CastToLongdouble(FPType Operand,
+void InsaneRuntime<MetaFloat>::CastToLongdouble(FPType Operand,
                                                    ShadowType **OperandShadow,
                                                    OpaqueLargeShadow **Res) {
   auto Shadow =
@@ -463,7 +464,7 @@ void InterflopBackend<MetaFloat>::CastToLongdouble(FPType Operand,
 }
 
 template <typename MetaFloat>
-void InterflopBackend<MetaFloat>::MakeShadow(FPType Source, ShadowType **Res) {
+void InsaneRuntime<MetaFloat>::MakeShadow(FPType Source, ShadowType **Res) {
 
   auto ResShadow = reinterpret_cast<MCASyncShadowFor<ShadowType> **>(Res);
 
@@ -482,19 +483,19 @@ void InterflopBackend<MetaFloat>::MakeShadow(FPType Source, ShadowType **Res) {
   }
 }
 
-template class InterflopBackend<MetaFloat<float, 1>>;
-template class InterflopBackend<MetaFloat<float, 2>>;
-template class InterflopBackend<MetaFloat<float, 4>>;
-template class InterflopBackend<MetaFloat<float, 8>>;
-template class InterflopBackend<MetaFloat<float, 16>>;
+template class InsaneRuntime<MetaFloat<float, 1>>;
+template class InsaneRuntime<MetaFloat<float, 2>>;
+template class InsaneRuntime<MetaFloat<float, 4>>;
+template class InsaneRuntime<MetaFloat<float, 8>>;
+template class InsaneRuntime<MetaFloat<float, 16>>;
 
-template class InterflopBackend<MetaFloat<double, 1>>;
-template class InterflopBackend<MetaFloat<double, 2>>;
-template class InterflopBackend<MetaFloat<double, 4>>;
-template class InterflopBackend<MetaFloat<double, 8>>;
+template class InsaneRuntime<MetaFloat<double, 1>>;
+template class InsaneRuntime<MetaFloat<double, 2>>;
+template class InsaneRuntime<MetaFloat<double, 4>>;
+template class InsaneRuntime<MetaFloat<double, 8>>;
 
-template class InterflopBackend<MetaFloat<long double, 1>>;
-template class InterflopBackend<MetaFloat<long double, 2>>;
-template class InterflopBackend<MetaFloat<long double, 4>>;
+template class InsaneRuntime<MetaFloat<long double, 1>>;
+template class InsaneRuntime<MetaFloat<long double, 2>>;
+template class InsaneRuntime<MetaFloat<long double, 4>>;
 
-} // namespace interflop
+} // namespace insane

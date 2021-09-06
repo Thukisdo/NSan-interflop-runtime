@@ -21,7 +21,7 @@
 #include <iostream>
 #include <limits>
 
-namespace interflop::mcasync {
+namespace insane::mcasync {
 
 // We use 4x shadow memory, so our shadows should be either 128 or 256 bytes for
 // large
@@ -68,4 +68,4 @@ static_assert(sizeof(MCASyncLargeShadow) == 32, "Invalid Large shadow size");
 // https://github.com/milankl/StochasticRounding.jl/blob/main/src/float32sr.jl
 float StochasticRound(double x);
 double StochasticRound(__float128 x);
-} // namespace interflop::mcasync
+} // namespace insane::mcasync

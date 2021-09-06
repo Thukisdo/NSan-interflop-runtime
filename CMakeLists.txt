@@ -28,6 +28,7 @@ target_include_directories(interflop-interface PUBLIC include)
 SET(SRC src/Utils.cpp
         src/Context.cpp 
         src/Interflop.cpp 
+        src/Flags.cpp
 )
 
 SET(HEADERS include/Flags.hpp 

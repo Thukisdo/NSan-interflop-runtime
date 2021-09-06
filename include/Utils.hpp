@@ -2,8 +2,8 @@
  * @file Utils.hpp
  * @author Mathys JAM (mathys.jam@ens.uvsq.fr)
  * @brief Defines a set of utility functions.
- * @version 0.7.0
- * @date 2021-07-20
+ * @version 0.5.1
+ * @date 2021-08-31
  *
  */
 
@@ -23,7 +23,7 @@ inline std::ostream &operator<<(std::ostream &os, __float128 x) {
 }
 } // namespace std
 
-namespace interflop {
+namespace insane {
 
 typedef float v2float __attribute__((vector_size(8)));
 typedef float v4float __attribute__((vector_size(16)));
@@ -141,6 +141,8 @@ public:
   static AsciiColor Gray;
   static AsciiColor Reset;
 
+  // To be used with printf during initialization
+  const char* str() const;
   friend std::ostream &operator<<(std::ostream &Os, const AsciiColor &Color);
 
 private:
@@ -149,4 +151,4 @@ private:
 };
 
 } // namespace utils
-} // namespace interflop
+} // namespace insane

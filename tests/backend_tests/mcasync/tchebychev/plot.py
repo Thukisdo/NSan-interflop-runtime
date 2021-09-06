@@ -5,6 +5,8 @@
 # from a set of stochastic outputs from tchebychev.                        #
 ############################################################################
 
+import math
+import matplotlib.pyplot as plt
 import sys
 import re
 import numpy as np
@@ -13,23 +15,20 @@ import matplotlib
 # Use Agg backend for headless runs
 matplotlib.use('Agg')
 
-import matplotlib.pyplot as plt
-import math
 
-def plot_samples(FPType: str, input_filename: str) :
+def plot_samples(FPType: str, input_filename: str):
 
     # Set title
-    title=f"MCA Tests for {FPType} type"
+    title = f"MCA Tests for {FPType} type"
     plt.figure(title, figsize=(10, 8))
     plt.suptitle(title)
 
     # Convert binary to decimal precision
-    prec_dec=float(32)*math.log(2, 10)
-
+    prec_dec = float(32 if FPType == "float" else 64) * math.log(2, 10)
 
     D = np.loadtxt(input_filename,
-            dtype = dict(names=('i', 'x', 'T'),
-                        formats=('i4', 'f8', 'f8')))
+                   dtype=dict(names=('i', 'x', 'T'),
+                              formats=('i4', 'f8', 'f8')))
 
     # Compute all statistics (mu, sigma, s)
     x_values = np.unique(D['x'])
@@ -59,7 +58,6 @@ def plot_samples(FPType: str, input_filename: str) :
         sigma_values.append(sigma)
         s_values.append(s)
 
-
     # Plot significant digits
     plt.subplot(311)
     plt.ylabel("$s$")
@@ -77,12 +75,10 @@ def plot_samples(FPType: str, input_filename: str) :
     plt.plot(D['x'], D['T'], 'k.', alpha=0.5)
     plt.plot(x_values, mu_values, '--', color='r')
     # Save plot as pdf
-    plotname="results_" + FPType + ".pdf"
+    plotname = "results_" + FPType + ".pdf"
     plt.savefig(plotname, format='pdf')
 
 
 plot_samples("float", "out_float.dat")
 plot_samples("double", "out_double.dat")
-plot_samples("longdouble", "out_longdouble.dat") 
-
- 
+plot_samples("longdouble", "out_longdouble.dat")
