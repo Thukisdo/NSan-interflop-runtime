@@ -108,8 +108,10 @@ bool CheckInternal(ScalarVT Operand, DoublePrecShadow *Shadow) {
 
   // Same as nsan default max threshold
   // FIXME : Should be defined as flags for more versatility
-  static constexpr double MaxAbsoluteError = 1.0 / std::pow(2, 32);
-  static constexpr double MaxRelativeError = 1.0 / std::pow(2, 19);
+  // Note: Some compilers do not allow for constexpr math function
+  // so this was removed for compatibility purposes 
+  static const double MaxAbsoluteError = 1.0 / std::pow(2, 32);
+  static const double MaxRelativeError = 1.0 / std::pow(2, 19);
 
   double AbsoluteError = utils::abs(Operand - Shadow->val);
   double RelativeError = utils::abs((AbsoluteError / Shadow->val) * 100);

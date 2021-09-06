@@ -63,10 +63,10 @@ class WarningRecorder {
 public:
   void Record();
 
+  virtual ~WarningRecorder() = default;
   virtual void print(std::string const &BackendName, std::ostream &out) = 0;
 
 private:
-
   virtual void RecordImpl() = 0;
   size_t WarningCount = 0;
 };
@@ -81,6 +81,8 @@ private:
  */
 class StacktraceRecorder : public WarningRecorder {
 public:
+  virtual ~StacktraceRecorder() = default;
+
   /**
    * @brief Pretty print every recorded stacktrace to the given stream.
    * Also outputs the number of time a stacktrace was recorded
