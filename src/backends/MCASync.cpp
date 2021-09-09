@@ -424,8 +424,6 @@ bool InsaneRuntime<MetaFloat>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
 
     if (InsaneContext::getInstance().Flags().getExitOnError())
       exit(1);
-    if (Context.Flags().getExitOnError())
-      exit(1);
   }
   // We return the shadow comparison result to be able to correctly branch
   return Res;

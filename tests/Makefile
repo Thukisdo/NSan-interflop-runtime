@@ -10,13 +10,21 @@ CC = ../../build/bin/clang
 CXX = ../../build/bin/clang++
 CFLAGS = -O3
 CXXFLAGS = -O3
-INSTRUMENTATION_FLAGS = -fno-omit-frame-pointer -fsanitize=numerical -mllvm -nsan-interflop -mllvm -nsan-shadowscale=2
-LINK_LIBRARY = -L../release/lib -linterflop-interface -linterflop-doubleprec -linterflop-core
-TEST=nsan_tests/verificarlo_case4.cc
+INSTRUMENTATION_FLAGS = -fsanitize=numerical -mllvm -nsan-interflop -mllvm -nsan-shadowscale=2
+LINK_LIBRARY = -lm -lgfortran -ldl -pthread -L../debug/lib -linterflop-interface -linterflop-doubleprec -linterflop-core #/home/chps/Bureau/work/nsan/build/lib/clang/13.0.0/lib/linux/libclang_rt.nsan-x86_64.a
+
+
+TEST=main.cpp
 
 .PHONY: test.o
 test.o: 
 	$(CXX) $(CXXFLAGS) $(INSTRUMENTATION_FLAGS) -o test.o $(TEST) $(LINK_LIBRARY)
+
+IR : 
+	$(CC) -S -emit-llvm $(CXXFLAGS) $(INSTRUMENTATION_FLAGS) -c -o test.ll $(TEST) $(LINK_LIBRARY)
+
+run:
+	./test
 
 clean :
 	rm -f test.o

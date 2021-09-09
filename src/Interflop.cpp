@@ -20,10 +20,9 @@ void WarningRecorder::Record() {
   RecordImpl();
   WarningCount++;
 
-  RuntimeFlags Flags = InsaneContext::getInstance().Flags();
+  size_t WarningLimit = InsaneContext::getInstance().Flags().getWarningLimit();
 
-  if (WarningCount >=
-      Flags.getWarningLimit() && Flags.getWarningLimit() != 0) {
+  if (WarningLimit > 0 && WarningCount > WarningLimit) {
     std::cerr << "[INSanE] Warning limit reached, exiting\n";
     exit(1);
   }
