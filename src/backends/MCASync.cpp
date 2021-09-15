@@ -23,14 +23,14 @@ namespace mcasync {
 
 std::ostream &operator<<(std::ostream &os, MCASyncShadow const &s) {
   auto mean = (s[0] + s[1] + s[2]) / 3;
-  std::cout << "[mean: " << mean << ", " << s[0] << ", " << s[1] << ", " << s[2]
+  std::cerr << "[mean: " << mean << ", " << s[0] << ", " << s[1] << ", " << s[2]
             << "]";
   return os;
 }
 
 std::ostream &operator<<(std::ostream &os, MCASyncLargeShadow const &s) {
   auto mean = (s[0] + s[1] + s[2]) / 3;
-  std::cout << "[mean: " << mean << ", " << s[0] << ", " << s[1] << ", " << s[2]
+  std::cerr << "[mean: " << mean << ", " << s[0] << ", " << s[1] << ", " << s[2]
             << "]";
   return os;
 }
@@ -355,21 +355,21 @@ bool InsaneRuntime<MetaFloat>::Check(FPType Operand,
 
     // Print a warning
     if (Context.Flags().getWarningEnabled()) {
-      std::cout << "\033[1;31m";
-      std::cout << "[MCASync] Low precision shadow result :"
+      std::cerr << "\033[1;31m";
+      std::cerr << "[MCASync] Low precision shadow result :"
                 << std::setprecision(20) << std::endl;
 
-      std::cout << "\tNative Value: ";
+      std::cerr << "\tNative Value: ";
       // We shall not acess Operand[I] if we're not working on vectors
       if constexpr (VectorSize > 1)
         for (int I = 0; I < VectorSize; I++)
-          std::cout << Operand[I] << std::endl;
+          std::cerr << Operand[I] << std::endl;
       else
-        std::cout << Operand << std::endl;
+        std::cerr << Operand << std::endl;
 
-      std::cout << "\tShadow Value: \n\t  " << *Shadow[0] << std::endl;
+      std::cerr << "\tShadow Value: \n\t  " << *Shadow[0] << std::endl;
       utils::DumpStacktrace();
-      std::cout << "\033[0m";
+      std::cerr << "\033[0m";
     }
 
     if (Context.Flags().getExitOnError())
@@ -397,29 +397,29 @@ bool InsaneRuntime<MetaFloat>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
 
     // Print a warning
     if (Context.Flags().getWarningEnabled()) {
-      std::cout << utils::AsciiColor::Red;
-      std::cout
+      std::cerr << utils::AsciiColor::Red;
+      std::cerr
           << "[MCASync] Floating-point comparison results depend on precision"
           << std::endl;
-      std::cout << "\tValue  a: { ";
+      std::cerr << "\tValue  a: { ";
       if constexpr (VectorSize > 1) {
         for (int I = 0; I < VectorSize; I++)
-          std::cout << LeftOperand[I] << " ";
-        std::cout << "} b: ";
+          std::cerr << LeftOperand[I] << " ";
+        std::cerr << "} b: ";
         for (int I = 0; I < VectorSize; I++)
-          std::cout << RightOperand[I] << " ";
+          std::cerr << RightOperand[I] << " ";
       } else
-        std::cout << LeftOperand << " } b: {" << RightOperand;
-      std::cout << "Shadow a:\n";
+        std::cerr << LeftOperand << " } b: {" << RightOperand;
+      std::cerr << "Shadow a:\n";
       for (int I = 0; I < VectorSize; I++) {
-        std::cout << "\t" << *LeftShadow[I] << "\n";
+        std::cerr << "\t" << *LeftShadow[I] << "\n";
       }
-      std::cout << "Shadow b:\n";
+      std::cerr << "Shadow b:\n";
       for (int I = 0; I < VectorSize; I++) {
-        std::cout << "\t" << *RightShadow[I] << "\n";
+        std::cerr << "\t" << *RightShadow[I] << "\n";
       }
       utils::DumpStacktrace();
-      std::cout << utils::AsciiColor::Reset;
+      std::cerr << utils::AsciiColor::Reset;
     }
 
     if (InsaneContext::getInstance().Flags().getExitOnError())

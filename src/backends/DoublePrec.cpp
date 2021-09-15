@@ -75,28 +75,28 @@ template <size_t VectorSize, typename FPType, typename DoublePrecShadow>
 void FCmpCheckFail(FPType a, DoublePrecShadow **sa, FPType b,
                    DoublePrecShadow **sb) {
 
-  std::cout << "Shadow results depends on precision" << std::endl;
-  std::cout << "\tValue  a: { ";
+  std::cerr << "Shadow results depends on precision" << std::endl;
+  std::cerr << "\tValue  a: { ";
 
   // Avoid acessing a[I] if we're not working on vectors
   if constexpr (VectorSize > 1) {
     for (int I = 0; I < VectorSize; I++)
-      std::cout << a[I] << " ";
-    std::cout << "} b: ";
+      std::cerr << a[I] << " ";
+    std::cerr << "} b: ";
     for (int I = 0; I < VectorSize; I++)
-      std::cout << b[I] << " ";
+      std::cerr << b[I] << " ";
   } else
-    std::cout << a << " } b: {" << b;
+    std::cerr << a << " } b: {" << b;
 
-  std::cout << "}\n\tShadow a: { ";
+  std::cerr << "}\n\tShadow a: { ";
   for (int I = 0; I < VectorSize; I++) {
-    std::cout << sa[I]->val << " ";
+    std::cerr << sa[I]->val << " ";
   }
-  std::cout << "} b: { ";
+  std::cerr << "} b: { ";
   for (int I = 0; I < VectorSize; I++) {
-    std::cout << sb[I]->val << " ";
+    std::cerr << sb[I]->val << " ";
   }
-  std::cout << "}" << std::endl;
+  std::cerr << "}" << std::endl;
 
   utils::DumpStacktrace();
   if (InsaneContext::getInstance().Flags().getExitOnError())
@@ -121,21 +121,22 @@ bool CheckInternal(ScalarVT Operand, DoublePrecShadow *Shadow) {
 template <size_t VectorSize, typename FPType, typename DoublePrecShadow>
 void CheckFail(FPType Operand, DoublePrecShadow **Shadow) {
 
-  std::cout << utils::AsciiColor::Red;
-  std::cout << "[DoublePrec] Inconsistent shadow result :"
+  std::cerr << utils::AsciiColor::Red;
+  std::cerr << "[DoublePrec] Inconsistent shadow result :"
             << std::setprecision(20) << std::endl;
 
-  std::cout << "\tNative Value: ";
+  std::cerr << "\tNative Value: ";
   // We shall not acess Operand[I] if we're not working on vectors
   if constexpr (VectorSize > 1)
     for (int I = 0; I < VectorSize; I++)
-      std::cout << Operand[I] << std::endl;
+      std::cerr << Operand[I] << std::endl;
   else
-    std::cout << Operand << std::endl;
+    std::cerr << Operand << std::endl;
 
-  std::cout << "\tShadow Value: \n\t  " << Shadow[0]->val << std::endl;
+  std::cerr << "\tShadow Value: \n\t  " << Shadow[0]->val << std::endl;
+  std::cerr << std::flush;
   utils::DumpStacktrace();
-  std::cout << utils::AsciiColor::Reset;
+  std::cerr << utils::AsciiColor::Reset;
 }
 
 template <size_t VectorSize, typename FPType, typename ShadowType,
@@ -201,6 +202,7 @@ typename MetaFloat::FPType InsaneRuntime<MetaFloat>::Sub(
 
   for (int I = 0; I < VectorSize; I++)
     ResShadow[I]->val = LeftShadow[I]->val - RightShadow[I]->val;
+
   return LeftOperand - RightOperand;
 }
 
@@ -216,6 +218,7 @@ typename MetaFloat::FPType InsaneRuntime<MetaFloat>::Mul(
 
   for (int I = 0; I < VectorSize; I++)
     ResShadow[I]->val = LeftShadow[I]->val * RightShadow[I]->val;
+
   return LeftOperand * RightOperand;
 }
 
@@ -232,6 +235,7 @@ typename MetaFloat::FPType InsaneRuntime<MetaFloat>::Div(
 
   for (int I = 0; I < VectorSize; I++)
     ResShadow[I]->val = LeftShadow[I]->val / RightShadow[I]->val;
+
   return LeftOperand / RightOperand;
 }
 

@@ -1,38 +1,42 @@
-#include <float.h>
-#include <random>
-#include <stdint.h>
+#include <array>
+#include <iostream>
 #include <stdio.h>
-#include <stdlib.h>
-struct complex {
-  double real, imag;
-};
 
-double __attribute__((noinline)) power2(double x) { return x * x; }
+template <typename T, size_t size>
+void __attribute__((noinline))
+init_array(std::array<T, size> &a, const size_t shift) {
+  for (int i = 0; i < size; i++) {
+    a[i] = i + shift;
+  }
+}
 
-double __attribute__((noinline)) compute(complex *a, complex *b) {
-  double sum = 0;
+template <typename iterator>
+void __attribute__((noinline))
+print_array(iterator begin_iterator, iterator end_iterator) {
 
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      sum += a->real * b->real + a->imag * b->imag;
-  return sum;
+  size_t i = 0;
+  for (iterator it = begin_iterator; it != end_iterator; ++it) {
+    std::cout << i << " : " << *it << "\n";
+    i++;
+  }
 }
 
 int main() {
 
-  complex *a = (complex *)malloc(sizeof(complex));
-  complex *b = (complex *)malloc(sizeof(complex));
-  a->real = 1;
-  b->real = 4;
+  constexpr size_t NElem = 16;
 
-  // No need for further initialization for the bug to appear
+  std::array<double, NElem> a;
+  std::array<double, NElem> b;
 
-  double c = 0;
+  init_array<double, NElem>(a, 0);
+  init_array<double, NElem>(b, NElem);
 
-  c = compute(a, b);
-  c = power2(c);
-  free(a);
-  free(b);
-  printf("C: %lf\n", c);
-  return c;
+  std::array<double, NElem> c = {0};
+  for (int i = 0; i < NElem; i++) {
+    c[i] = a[i] * b[i];
+  }
+
+  print_array(c.begin(), c.end());
+
+  return 0;
 }

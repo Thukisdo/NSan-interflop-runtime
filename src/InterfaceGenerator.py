@@ -3,7 +3,7 @@
 # Python script to automatically generate the interface, since it is filled with boilerplate code
 
 FPTypes = ["float", "double", "longdouble"]
-MaxVectorSize = {'float': 32, 'double': 16, 'longdouble': 4}
+MaxVectorSize = {'float': 32, 'double': 16, 'longdouble': 1}
 ShadowType = ["OpaqueShadow", "OpaqueLargeShadow"]
 
 
@@ -14,12 +14,14 @@ def GetVectorPrefix(VSize=1):
 
 
 def TypeToMetaFloat(Type: str, VSize=1):
-    if Type == "longdouble" :
+    if Type == "longdouble":
         Type = "long double"
     return f"MetaFloat<{Type}, {VSize}>"
-    
-def MetaFloatToFpType(Type: str) :
+
+
+def MetaFloatToFpType(Type: str):
     return f"{Type}::FPType"
+
 
 def FPTypeToShadow(Type: str, VSize=1):
     ShadowType = "OpaqueShadow" if Type == "float" else "OpaqueLargeShadow"
@@ -42,6 +44,7 @@ def WriteHeader(File=None):
     File.write("#include <cstring>\n")
     File.write("using namespace insane;\n")
     File.write("template <typename T> using Backend = InsaneRuntime<T>;\n\n")
+
 
 def GenerateHelperFunction(File=None):
     # Helper function to reduce a vector of bool to a single bool
@@ -187,7 +190,6 @@ def GenerateInterface():
             GenerateFCmpCheck(Type, VSize, File)
             GenerateCast(Type, VSize, File)
             VSize *= 2
-
 
 
 GenerateInterface()

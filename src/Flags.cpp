@@ -101,7 +101,7 @@ void RuntimeFlags::ParseFlag(std::string const &Str) {
     RecognizedFlag++;
   }
 
-  printf("[INSanE] %lu flag(s) loaded\n", RecognizedFlag);
+  fprintf(stderr, "[INSanE] %lu flag(s) loaded\n", RecognizedFlag);
 }
 
 } // namespace insane
