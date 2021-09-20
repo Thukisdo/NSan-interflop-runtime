@@ -37,15 +37,15 @@ namespace {
 // FIXME : Refactor this (probably should use templated comparator / threeway
 // comparisons)
 template <size_t VectorSize, typename DoublePrecShadow>
-bool FCmp(FCmpOpcode Opcode, DoublePrecShadow **LeftShadow,
-          DoublePrecShadow **RightShadow) {
+bool FCmp(FCmpOpcode Opcode, DoublePrecShadow *LeftShadow,
+          DoublePrecShadow *RightShadow) {
 
   bool Res = true;
 
   for (int I = 0; Res && (I < VectorSize); I++) {
 
-    auto LeftOp = LeftShadow[I]->val;
-    auto RightOp = RightShadow[I]->val;
+    auto LeftOp = LeftShadow[I].val;
+    auto RightOp = RightShadow[I].val;
 
     // Handle unordered comparisons
     if (Opcode > UnorderedFCmp &&
@@ -72,8 +72,8 @@ bool FCmp(FCmpOpcode Opcode, DoublePrecShadow **LeftShadow,
 }
 
 template <size_t VectorSize, typename FPType, typename DoublePrecShadow>
-void FCmpCheckFail(FPType a, DoublePrecShadow **sa, FPType b,
-                   DoublePrecShadow **sb) {
+void FCmpCheckFail(FPType a, DoublePrecShadow *sa, FPType b,
+                   DoublePrecShadow *sb) {
 
   std::cerr << "Shadow results depends on precision" << std::endl;
   std::cerr << "\tValue  a: { ";
@@ -90,11 +90,11 @@ void FCmpCheckFail(FPType a, DoublePrecShadow **sa, FPType b,
 
   std::cerr << "}\n\tShadow a: { ";
   for (int I = 0; I < VectorSize; I++) {
-    std::cerr << sa[I]->val << " ";
+    std::cerr << sa[I].val << " ";
   }
   std::cerr << "} b: { ";
   for (int I = 0; I < VectorSize; I++) {
-    std::cerr << sb[I]->val << " ";
+    std::cerr << sb[I].val << " ";
   }
   std::cerr << "}" << std::endl;
 
@@ -104,7 +104,7 @@ void FCmpCheckFail(FPType a, DoublePrecShadow **sa, FPType b,
 }
 
 template <typename ScalarVT, typename DoublePrecShadow>
-bool CheckInternal(ScalarVT Operand, DoublePrecShadow *Shadow) {
+bool CheckInternal(ScalarVT Operand, DoublePrecShadow* Shadow) {
 
   // Same as nsan default max threshold
   // FIXME : Should be defined as flags for more versatility
@@ -119,7 +119,7 @@ bool CheckInternal(ScalarVT Operand, DoublePrecShadow *Shadow) {
 }
 
 template <size_t VectorSize, typename FPType, typename DoublePrecShadow>
-void CheckFail(FPType Operand, DoublePrecShadow **Shadow) {
+void CheckFail(FPType Operand, DoublePrecShadow *Shadow) {
 
   std::cerr << utils::AsciiColor::Red;
   std::cerr << "[DoublePrec] Inconsistent shadow result :"
@@ -133,7 +133,7 @@ void CheckFail(FPType Operand, DoublePrecShadow **Shadow) {
   else
     std::cerr << Operand << std::endl;
 
-  std::cerr << "\tShadow Value: \n\t  " << Shadow[0]->val << std::endl;
+  std::cerr << "\tShadow Value: \n\t  " << Shadow[0].val << std::endl;
   std::cerr << std::flush;
   utils::DumpStacktrace();
   std::cerr << utils::AsciiColor::Reset;
@@ -141,10 +141,21 @@ void CheckFail(FPType Operand, DoublePrecShadow **Shadow) {
 
 template <size_t VectorSize, typename FPType, typename ShadowType,
           typename DestType>
-void CastInternal(FPType a, ShadowType **sa, DestType **sb) {
+void CastInternal(FPType a, ShadowType* sa, DestType **sb) {
 
   for (int I = 0; I < VectorSize; I++) {
-    sb[I]->val = sa[I]->val;
+    sb[I]->val = sa[I].val;
+  }
+}
+
+// Since we use a fp128 type inside the shadow, we need them to be aligned
+// through a copy
+template <size_t VectorSize, typename Destination, typename Source>
+void CopyAndAlign(Destination *Dest, Source *Src) {
+
+  for (size_t I = 0; I < VectorSize; I++) {
+    memcpy(reinterpret_cast<char *>(&Dest[I]),
+           reinterpret_cast<char *>(Src[I]), sizeof(Destination));
   }
 }
 
@@ -162,12 +173,15 @@ typename MetaFloat::FPType
 InsaneRuntime<MetaFloat>::Neg(FPType Operand, ShadowType **ShadowOperand,
                               ShadowType **Res) {
 
-  auto Shadow =
-      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
+  using DoublePrecShadowType = DoubleprecShadowFor<ShadowType>;
+  // We align both operands
+  DoublePrecShadowType Shadow[VectorSize];
+  CopyAndAlign<VectorSize>(Shadow, ShadowOperand);
+
   auto ResShadow = reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(Res);
 
   for (int I = 0; I < VectorSize; I++) {
-    ResShadow[I]->val = -Shadow[I]->val;
+    ResShadow[I]->val = -Shadow[I].val;
   }
   return -Operand;
 }
@@ -179,14 +193,16 @@ typename MetaFloat::FPType InsaneRuntime<MetaFloat>::Add(
     FPType LeftOperand, ShadowType **LeftShadowOperand, FPType RightOperand,
     ShadowType **const RightShadowOperand, ShadowType **Res) {
 
-  auto LeftShadow =
-      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(LeftShadowOperand);
-  auto RightShadow =
-      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(RightShadowOperand);
+  using DoublePrecShadowType = DoubleprecShadowFor<ShadowType>;
+  // We align both operands
+  DoublePrecShadowType LeftShadow[VectorSize], RightShadow[VectorSize];
+  CopyAndAlign<VectorSize>(LeftShadow, LeftShadowOperand);
+  CopyAndAlign<VectorSize>(RightShadow, RightShadowOperand);
+
   auto ResShadow = reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(Res);
 
   for (int I = 0; I < VectorSize; I++)
-    ResShadow[I]->val = LeftShadow[I]->val + RightShadow[I]->val;
+    ResShadow[I]->val = LeftShadow[I].val + RightShadow[I].val;
   return LeftOperand + RightOperand;
 }
 
@@ -194,14 +210,17 @@ template <typename MetaFloat>
 typename MetaFloat::FPType InsaneRuntime<MetaFloat>::Sub(
     FPType LeftOperand, ShadowType **LeftShadowOperand, FPType RightOperand,
     ShadowType **const RightShadowOperand, ShadowType **Res) {
-  auto LeftShadow =
-      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(LeftShadowOperand);
-  auto RightShadow =
-      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(RightShadowOperand);
+
+  using DoublePrecShadowType = DoubleprecShadowFor<ShadowType>;
+  // We align both operands
+  DoublePrecShadowType LeftShadow[VectorSize], RightShadow[VectorSize];
+  CopyAndAlign<VectorSize>(LeftShadow, LeftShadowOperand);
+  CopyAndAlign<VectorSize>(RightShadow, RightShadowOperand);
+
   auto ResShadow = reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(Res);
 
   for (int I = 0; I < VectorSize; I++)
-    ResShadow[I]->val = LeftShadow[I]->val - RightShadow[I]->val;
+    ResShadow[I]->val = LeftShadow[I].val - RightShadow[I].val;
 
   return LeftOperand - RightOperand;
 }
@@ -210,14 +229,17 @@ template <typename MetaFloat>
 typename MetaFloat::FPType InsaneRuntime<MetaFloat>::Mul(
     FPType LeftOperand, ShadowType **LeftShadowOperand, FPType RightOperand,
     ShadowType **const RightShadowOperand, ShadowType **Res) {
-  auto LeftShadow =
-      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(LeftShadowOperand);
-  auto RightShadow =
-      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(RightShadowOperand);
+
+  using DoublePrecShadowType = DoubleprecShadowFor<ShadowType>;
+  // We align both operands
+  DoublePrecShadowType LeftShadow[VectorSize], RightShadow[VectorSize];
+  CopyAndAlign<VectorSize>(LeftShadow, LeftShadowOperand);
+  CopyAndAlign<VectorSize>(RightShadow, RightShadowOperand);
+
   auto ResShadow = reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(Res);
 
   for (int I = 0; I < VectorSize; I++)
-    ResShadow[I]->val = LeftShadow[I]->val * RightShadow[I]->val;
+    ResShadow[I]->val = LeftShadow[I].val * RightShadow[I].val;
 
   return LeftOperand * RightOperand;
 }
@@ -227,26 +249,29 @@ typename MetaFloat::FPType InsaneRuntime<MetaFloat>::Div(
     FPType LeftOperand, ShadowType **LeftShadowOperand, FPType RightOperand,
     ShadowType **const RightShadowOperand, ShadowType **Res) {
 
-  auto LeftShadow =
-      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(LeftShadowOperand);
-  auto RightShadow =
-      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(RightShadowOperand);
+  using DoublePrecShadowType = DoubleprecShadowFor<ShadowType>;
+  // We align both operands
+  DoublePrecShadowType LeftShadow[VectorSize], RightShadow[VectorSize];
+  CopyAndAlign<VectorSize>(LeftShadow, LeftShadowOperand);
+  CopyAndAlign<VectorSize>(RightShadow, RightShadowOperand);
+
   auto ResShadow = reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(Res);
 
   for (int I = 0; I < VectorSize; I++)
-    ResShadow[I]->val = LeftShadow[I]->val / RightShadow[I]->val;
+    ResShadow[I]->val = LeftShadow[I].val / RightShadow[I].val;
 
   return LeftOperand / RightOperand;
 }
 
-// Called when we need to compare the native value with the shadow one to see
-// if they have diverged
+// Called when we need to compare the native value with the shadow one to
+// see if they have diverged
 template <typename MetaFloat>
 bool InsaneRuntime<MetaFloat>::Check(FPType Operand,
                                      ShadowType **ShadowOperand) {
 
-  auto **Shadow =
-      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
+  // We align both operands
+  DoubleprecShadowFor<ShadowType> Shadow[VectorSize];
+  CopyAndAlign<VectorSize>(Shadow, ShadowOperand);
 
   bool Res = false;
   // We unvectorize the check
@@ -254,10 +279,10 @@ bool InsaneRuntime<MetaFloat>::Check(FPType Operand,
   if constexpr (VectorSize > 1) {
     // Loop until failure or all elements have been checked
     for (int I = 0; not Res && (I < VectorSize); I++)
-      Res = Res || CheckInternal(Operand[I], Shadow[I]);
+      Res = Res || CheckInternal(Operand[I], &Shadow[I]);
     return Res;
   } else
-    Res = CheckInternal(Operand, Shadow[0]);
+    Res = CheckInternal(Operand, &Shadow[0]);
 
   if (Res) {
     // We may want to store additional information
@@ -274,21 +299,20 @@ bool InsaneRuntime<MetaFloat>::Check(FPType Operand,
   return Res;
 }
 
-// We need to perform the comparison with both shadows, and compare it to the
-// native result
-// To ease the implementaiton, we take the native result as a
-// parameter
+// We need to perform the comparison with both shadows, and compare it to
+// the native result To ease the implementaiton, we take the native result
+// as a parameter
 template <typename MetaFloat>
 bool InsaneRuntime<MetaFloat>::CheckFCmp(FCmpOpcode Opcode, FPType LeftOperand,
                                          ShadowType **LeftShadowOperand,
                                          FPType RightOperand,
                                          ShadowType **RightShadowOperand,
                                          bool Value) {
-
-  auto LeftShadow =
-      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(LeftShadowOperand);
-  auto RightShadow =
-      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(RightShadowOperand);
+  using DoublePrecShadowType = DoubleprecShadowFor<ShadowType>;
+  // We align both operands
+  DoublePrecShadowType LeftShadow[VectorSize], RightShadow[VectorSize];
+  CopyAndAlign<VectorSize>(LeftShadow, LeftShadowOperand);
+  CopyAndAlign<VectorSize>(RightShadow, RightShadowOperand);
 
   // We perfom the same comparisons in the shadow space
   bool Res = FCmp<VectorSize>(Opcode, LeftShadow, RightShadow);
@@ -329,8 +353,11 @@ template <typename MetaFloat>
 void InsaneRuntime<MetaFloat>::CastToFloat(FPType Operand,
                                            ShadowType **ShadowOperand,
                                            OpaqueShadow **Res) {
-  auto Shadow =
-      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
+  // We align the shadow
+  using DoublePrecShadowType = DoubleprecShadowFor<ShadowType>;
+  DoublePrecShadowType Shadow[VectorSize];
+  CopyAndAlign<VectorSize>(Shadow, ShadowOperand);
+
   auto ResShadow = reinterpret_cast<DoublePrecShadow **>(Res);
 
   CastInternal<VectorSize>(Operand, Shadow, ResShadow);
@@ -340,8 +367,11 @@ template <typename MetaFloat>
 void InsaneRuntime<MetaFloat>::CastToDouble(FPType Operand,
                                             ShadowType **ShadowOperand,
                                             OpaqueLargeShadow **Res) {
-  auto Shadow =
-      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
+  // We align the shadow
+  using DoublePrecShadowType = DoubleprecShadowFor<ShadowType>;
+  DoublePrecShadowType Shadow[VectorSize];
+  CopyAndAlign<VectorSize>(Shadow, ShadowOperand);
+
   auto ResShadow = reinterpret_cast<DoublePrecLargeShadow **>(Res);
 
   CastInternal<VectorSize>(Operand, Shadow, ResShadow);
@@ -351,8 +381,11 @@ template <typename MetaFloat>
 void InsaneRuntime<MetaFloat>::CastToLongdouble(FPType Operand,
                                                 ShadowType **ShadowOperand,
                                                 OpaqueLargeShadow **Res) {
-  auto Shadow =
-      reinterpret_cast<DoubleprecShadowFor<ShadowType> **>(ShadowOperand);
+  // We align the shadow
+  using DoublePrecShadowType = DoubleprecShadowFor<ShadowType>;
+  DoublePrecShadowType Shadow[VectorSize];
+  CopyAndAlign<VectorSize>(Shadow, ShadowOperand);
+
   auto ResShadow = reinterpret_cast<DoublePrecLargeShadow **>(Res);
 
   CastInternal<VectorSize>(Operand, Shadow, ResShadow);
