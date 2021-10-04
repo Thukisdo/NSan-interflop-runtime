@@ -22,15 +22,15 @@ namespace insane {
 namespace mcasync {
 
 std::ostream &operator<<(std::ostream &os, MCASyncShadow const &s) {
-  auto mean = (s[0] + s[1] + s[2]) / 3;
-  std::cerr << "[mean: " << mean << ", " << s[0] << ", " << s[1] << ", " << s[2]
+  auto mean = (s[0] + s[1]) / 2;
+  std::cerr << "[mean: " << mean << ", " << s[0] << ", " << s[1] << ", "
             << "]";
   return os;
 }
 
 std::ostream &operator<<(std::ostream &os, MCASyncLargeShadow const &s) {
-  auto mean = (s[0] + s[1] + s[2]) / 3;
-  std::cerr << "[mean: " << mean << ", " << s[0] << ", " << s[1] << ", " << s[2]
+  auto mean = (s[0] + s[1]) / 2;
+  std::cerr << "[mean: " << mean << ", " << s[0] << ", " << s[1] << ", "
             << "]";
   return os;
 }
@@ -129,9 +129,9 @@ using namespace mcasync;
 void BackendInit(InsaneContext &Context) noexcept {
   Context.setBackendName("insane::MCASync");
 
-  if (utils::GetNSanShadowScale() != 4) {
-    fprintf(stderr, "Warning: MCA Synchrone backend requires 4x shadow\n");
-    fprintf(stderr, "Recompile using flags -mllvm -nsan-shadowscale=4\n");
+  if (utils::GetNSanShadowScale() != 2) {
+    fprintf(stderr, "Warning: MCA Synchrone backend requires 2x shadow\n");
+    fprintf(stderr, "Recompile using flags -mllvm -nsan-shadowscale=2\n");
     exit(1);
   }
 }
@@ -149,7 +149,6 @@ void CastInternal(MCASyncShadow **Shadow, DestType Res) {
   for (int I = 0; I < VectorSize; I++) {
     Res[I]->val[0] = Shadow[I]->val[0];
     Res[I]->val[1] = Shadow[I]->val[1];
-    Res[I]->val[2] = Shadow[I]->val[2];
   }
 }
 
@@ -158,9 +157,9 @@ template <typename MCASyncShadow> bool CheckInternal(MCASyncShadow *Shadow) {
   double Mean = Shadow->mean();
 
   double Variance = 0;
-  for (int I = 0; I < 3; I++)
+  for (int I = 0; I < 2; I++)
     Variance += pow(Shadow->val[I] - Mean, 2.0);
-  Variance /= 3.0;
+  Variance /= 2.0;
 
   double SignificantDigit = -std::log10(utils::abs(sqrt(Variance) / Mean));
   // Should use a flag that defines required precision
@@ -230,7 +229,6 @@ InsaneRuntime<MetaFloat>::Neg(FPType Operand, ShadowType **OperandShadow,
   for (int I = 0; I < VectorSize; I++) {
     ResShadow[I]->val[0] = -Shadow[I]->val[0];
     ResShadow[I]->val[1] = -Shadow[I]->val[1];
-    ResShadow[I]->val[2] = -Shadow[I]->val[2];
   }
   return -Operand;
 }
@@ -253,10 +251,14 @@ InsaneRuntime<MetaFloat>::Add(FPType LeftOp, ShadowType **LeftOpaqueShadow,
         (ExtendedScalar<FPType>)LeftShadow[I]->val[0] + RightShadow[I]->val[0]);
     ResShadow[I]->val[1] = StochasticRound(
         (ExtendedScalar<FPType>)LeftShadow[I]->val[1] + RightShadow[I]->val[1]);
-    ResShadow[I]->val[2] = StochasticRound(
-        (ExtendedScalar<FPType>)LeftShadow[I]->val[2] + RightShadow[I]->val[2]);
   }
-  return LeftOp + RightOp;
+  if constexpr (VectorSize > 1) {
+    FPType res = {0.};
+    for (int I = 0; I < VectorSize; I++)
+      res[I] = StochasticRound((ExtendedScalar<FPType>)LeftOp[I] + RightOp[I]);
+    return res;
+  } else
+    return StochasticRound((ExtendedScalar<FPType>)LeftOp + RightOp);
 }
 
 template <typename MetaFloat>
@@ -277,10 +279,14 @@ InsaneRuntime<MetaFloat>::Sub(FPType LeftOp, ShadowType **LeftOpaqueShadow,
         (ExtendedScalar<FPType>)LeftShadow[I]->val[0] - RightShadow[I]->val[0]);
     ResShadow[I]->val[1] = StochasticRound(
         (ExtendedScalar<FPType>)LeftShadow[I]->val[1] - RightShadow[I]->val[1]);
-    ResShadow[I]->val[2] = StochasticRound(
-        (ExtendedScalar<FPType>)LeftShadow[I]->val[2] - RightShadow[I]->val[2]);
   }
-  return LeftOp - RightOp;
+  if constexpr (VectorSize > 1) {
+    FPType res = {0.};
+    for (int I = 0; I < VectorSize; I++)
+      res[I] = StochasticRound((ExtendedScalar<FPType>)LeftOp[I] - RightOp[I]);
+    return res;
+  } else
+    return StochasticRound((ExtendedScalar<FPType>)LeftOp - RightOp);
 }
 
 template <typename MetaFloat>
@@ -301,10 +307,14 @@ InsaneRuntime<MetaFloat>::Mul(FPType LeftOp, ShadowType **LeftOpaqueShadow,
         (ExtendedScalar<FPType>)LeftShadow[I]->val[0] * RightShadow[I]->val[0]);
     ResShadow[I]->val[1] = StochasticRound(
         (ExtendedScalar<FPType>)LeftShadow[I]->val[1] * RightShadow[I]->val[1]);
-    ResShadow[I]->val[2] = StochasticRound(
-        (ExtendedScalar<FPType>)LeftShadow[I]->val[2] * RightShadow[I]->val[2]);
   }
-  return LeftOp * RightOp;
+  if constexpr (VectorSize > 1) {
+    FPType res = {0.};
+    for (int I = 0; I < VectorSize; I++)
+      res[I] = StochasticRound((ExtendedScalar<FPType>)LeftOp[I] * RightOp[I]);
+    return res;
+  } else
+    return StochasticRound((ExtendedScalar<FPType>)LeftOp * RightOp);
 }
 
 template <typename MetaFloat>
@@ -325,10 +335,14 @@ InsaneRuntime<MetaFloat>::Div(FPType LeftOp, ShadowType **LeftOpaqueShadow,
         (ExtendedScalar<FPType>)LeftShadow[I]->val[0] / RightShadow[I]->val[0]);
     ResShadow[I]->val[1] = StochasticRound(
         (ExtendedScalar<FPType>)LeftShadow[I]->val[1] / RightShadow[I]->val[1]);
-    ResShadow[I]->val[2] = StochasticRound(
-        (ExtendedScalar<FPType>)LeftShadow[I]->val[2] / RightShadow[I]->val[2]);
   }
-  return LeftOp / RightOp;
+  if constexpr (VectorSize > 1) {
+    FPType res = {0.};
+    for (int I = 0; I < VectorSize; I++)
+      res[I] = StochasticRound((ExtendedScalar<FPType>)LeftOp[I] / RightOp[I]);
+    return res;
+  } else
+    return StochasticRound((ExtendedScalar<FPType>)LeftOp / RightOp);
 }
 
 template <typename MetaFloat>
@@ -473,11 +487,9 @@ void InsaneRuntime<MetaFloat>::MakeShadow(FPType Source, ShadowType **Res) {
     if constexpr (VectorSize > 1) {
       ResShadow[I]->val[0] = Source[I];
       ResShadow[I]->val[1] = Source[I];
-      ResShadow[I]->val[2] = Source[I];
     } else {
       ResShadow[0]->val[0] = Source;
       ResShadow[0]->val[1] = Source;
-      ResShadow[0]->val[2] = Source;
     }
   }
 }

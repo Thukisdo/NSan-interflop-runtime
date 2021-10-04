@@ -37,13 +37,13 @@ InsaneContext::~InsaneContext() {
 
   // A failed initialization may indicate a failure in the progran init sequence
   // causing std::cerr to be uninitialized.
-  if (not std::cerr.good())
-    return;
+  BackendFinalize(*this);
 
-  if (RTFlags.getPrintStatsOnExit())
+  if (not Initialized)
+    return;
+  if (WRecorder && RTFlags.getPrintStatsOnExit())
     WRecorder->print(BackendName, std::cerr);
 
-  BackendFinalize(*this);
 }
 
 } // namespace insane

@@ -26,8 +26,7 @@ namespace insane::mcasync {
 // We use 4x shadow memory, so our shadows should be either 128 or 256 bytes for
 // large
 struct MCASyncShadow {
-  float val[3];
-  uint32_t padding[1];
+  float val[2];
 
   // helper methods for printing / acessing one of the shadow float
   friend std::ostream &operator<<(std::ostream &os, MCASyncShadow const &s);
@@ -39,12 +38,11 @@ struct MCASyncShadow {
     return val[index];
   }
 
-  float mean() const { return (val[0] + val[1] + val[2]) / 3; }
+  float mean() const { return (val[0] + val[1]) / 2; }
 };
 
 struct MCASyncLargeShadow {
-  double val[3];
-  uint64_t padding[1];
+  double val[2];
 
   // helper methods for printing / acessing one of the shadow double
   friend std::ostream &operator<<(std::ostream &os,
@@ -57,11 +55,11 @@ struct MCASyncLargeShadow {
     return val[index];
   }
 
-  float mean() const { return (val[0] + val[1] + val[2]) / 3; }
+  float mean() const { return (val[0] + val[1]) / 2; }
 };
 
-static_assert(sizeof(MCASyncShadow) == 16, "Invalid shadow size");
-static_assert(sizeof(MCASyncLargeShadow) == 32, "Invalid Large shadow size");
+static_assert(sizeof(MCASyncShadow) == 8, "Invalid shadow size");
+static_assert(sizeof(MCASyncLargeShadow) == 16, "Invalid Large shadow size");
 
 // Adapted from a Julia rounding code
 // Voluntary making it avaible externally for testing purposes

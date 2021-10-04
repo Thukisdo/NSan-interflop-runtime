@@ -74,6 +74,6 @@ extern "C" void __interflop_init() {
   Initialized = true;
 
   auto &Context = InsaneContext::getInstance();
-  Context.Init();
   BackendInit(Context);
+  Context.Init();
 }
