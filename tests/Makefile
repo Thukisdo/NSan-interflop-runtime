@@ -10,11 +10,11 @@ CC = ../../build/bin/clang
 CXX = ../../build/bin/clang++
 CFLAGS = -g
 CXXFLAGS = -g
-INSTRUMENTATION_FLAGS = -mavx -fsanitize=numerical #-mllvm -nsan-interflop -mllvm -nsan-shadowscale=2
-LINK_LIBRARY = -lm -lgfortran -ldl -pthread -L../debug/lib -linterflop-interface -linterflop-doubleprec -linterflop-core #/home/chps/Bureau/work/nsan/build/lib/clang/13.0.0/lib/linux/libclang_rt.nsan-x86_64.a
+INSTRUMENTATION_FLAGS = -mavx -fsanitize=numerical -mllvm -nsan-interflop -mllvm -nsan-shadowscale=4
+LINK_LIBRARY = -lm -lgfortran -ldl -pthread -L../debug/lib -linterflop-interface -linterflop-mcasync -linterflop-core #/home/chps/Bureau/work/nsan/build/lib/clang/13.0.0/lib/linux/libclang_rt.nsan-x86_64.a
 
 
-TEST=kahan_sum.cpp
+TEST=nsan_tests/cadna_ex3.cc
 
 .PHONY: test.o
 test.o: 
@@ -23,8 +23,8 @@ test.o:
 IR : 
 	$(CC) -S -emit-llvm $(CXXFLAGS) $(INSTRUMENTATION_FLAGS) -c -o test.ll $(TEST) $(LINK_LIBRARY)
 
-run:
-	./test
+run: test.o
+	./test.o
 
 clean :
 	rm -f test.o

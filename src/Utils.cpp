@@ -70,7 +70,7 @@ size_t GetNSanShadowScale() {
   return res;
 }
 
-AsciiColor AsciiColor::Red = "\033[31m";
+AsciiColor AsciiColor::Red = "\033[91;1m";
 AsciiColor AsciiColor::Yellow = "\033[33m";
 AsciiColor AsciiColor::Blue = "\033[34m";
 AsciiColor AsciiColor::Cyan = "\033[36m";
